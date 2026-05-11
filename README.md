@@ -5,12 +5,18 @@
 <h1 align="center">Lurelit</h1>
 
 <p align="center">
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+</p>
+
+<p align="center">
   <strong>An agentic screenshot analyzer that lights up phishing and smishing lures.</strong>
 </p>
 
 <p align="center">
   <em>Named for the anglerfish's bioluminescent lure — Lurelit illuminates the deceptive glow of phishing attacks, making the invisible threat visible.</em>
 </p>
+
+**[View Documentation & Screenshots →](https://github.com/jamesspi/lurelit-site)**
 
 ---
 
@@ -25,90 +31,6 @@
 - **Slack Notifications** — Formatted Block Kit reports delivered to your team's Slack channel
 - **Cost Tracking** — Token usage and estimated costs displayed for each AI operation
 - **History & Metrics** — Full execution history with filtering, stats cards, and trend dashboards
-
-## Screenshots
-
-### Upload & Submission
-
-[![Upload hero — Light up the lures](examples/screenshots/upload-hero.png)](examples/screenshots/upload-hero.png)
-
-[![Multi-file upload](examples/screenshots/multi-file-upload.png)](examples/screenshots/multi-file-upload.png)
-
-### Analysis In Progress
-
-[![Analysis in progress with live step timeline](examples/screenshots/analysis-in-progress.png)](examples/screenshots/analysis-in-progress.png)
-
-[![Active analyses bar](examples/screenshots/active-analyses-bar.png)](examples/screenshots/active-analyses-bar.png)
-
-### Results & Verdicts
-
-[![Results verdict header](examples/screenshots/results-verdict-header.png)](examples/screenshots/results-verdict-header.png)
-
-[![Analysis complete with hunt results](examples/screenshots/analysis-complete-with-hunt-results.png)](examples/screenshots/analysis-complete-with-hunt-results.png)
-
-[![Result — spam, no threat](examples/screenshots/result-spam-no-threat.png)](examples/screenshots/result-spam-no-threat.png)
-
-### Sample Inputs — Phishing & Smishing
-
-[![Phishing email — Microsoft 365](examples/screenshots/phishing-email-microsoft365.png)](examples/screenshots/phishing-email-microsoft365.png)
-
-[![Phishing email with real IOCs — Microsoft 365](examples/screenshots/phishing-email-real-ioc-microsoft365.png)](examples/screenshots/phishing-email-real-ioc-microsoft365.png)
-
-[![Smishing SMS — EZPass toll](examples/screenshots/smishing-sms-ezpass-toll.png)](examples/screenshots/smishing-sms-ezpass-toll.png)
-
-[![Smishing with real IOCs — EZPass](examples/screenshots/smishing-real-ioc-ezpass.png)](examples/screenshots/smishing-real-ioc-ezpass.png)
-
-[![Smishing SMS — USPS delivery](examples/screenshots/smishing-sms-usps-delivery.png)](examples/screenshots/smishing-sms-usps-delivery.png)
-
-[![Smishing with real IOCs — USPS](examples/screenshots/smishing-real-ioc-usps.png)](examples/screenshots/smishing-real-ioc-usps.png)
-
-### Sample Inputs — Benign & Spam
-
-[![Benign email — Microsoft sign-in](examples/screenshots/benign-email-microsoft-signin.png)](examples/screenshots/benign-email-microsoft-signin.png)
-
-[![Benign SMS — Amazon delivery](examples/screenshots/benign-sms-amazon-delivery.png)](examples/screenshots/benign-sms-amazon-delivery.png)
-
-[![Spam email — cold outreach](examples/screenshots/spam-email-cold-outreach.png)](examples/screenshots/spam-email-cold-outreach.png)
-
-[![Spam SMS — marketing](examples/screenshots/spam-sms-marketing.png)](examples/screenshots/spam-sms-marketing.png)
-
-### IOC Enrichment
-
-[![IOC enrichment results](examples/screenshots/ioc-enrichment-results.png)](examples/screenshots/ioc-enrichment-results.png)
-
-[![Enrichment summary with hunt recommendations](examples/screenshots/enrichment-summary-hunt-recommendations.png)](examples/screenshots/enrichment-summary-hunt-recommendations.png)
-
-### Threat Hunting
-
-[![Threat hunt results](examples/screenshots/threat-hunt-results.png)](examples/screenshots/threat-hunt-results.png)
-
-### Human-in-the-Loop
-
-[![HITL approval — full view](examples/screenshots/hitl-approval-full.png)](examples/screenshots/hitl-approval-full.png)
-
-[![HITL approval — header](examples/screenshots/hitl-approval-header.png)](examples/screenshots/hitl-approval-header.png)
-
-[![HITL approval — prompt UI](examples/screenshots/hitl-approval-prompt-ui.png)](examples/screenshots/hitl-approval-prompt-ui.png)
-
-[![HITL approval — step card](examples/screenshots/hitl-approval-step-card.png)](examples/screenshots/hitl-approval-step-card.png)
-
-[![HITL trigger — approved hunt](examples/screenshots/hitl-trigger-approved-hunt.png)](examples/screenshots/hitl-trigger-approved-hunt.png)
-
-[![HITL trigger — no hunt (loyalty reward)](examples/screenshots/hitl-trigger-no-hunt-loyalty-reward.png)](examples/screenshots/hitl-trigger-no-hunt-loyalty-reward.png)
-
-### Dashboard & Metrics
-
-[![Dashboard metrics with Sankey diagram](examples/screenshots/dashboard-metrics-sankey.png)](examples/screenshots/dashboard-metrics-sankey.png)
-
-[![Cost breakdown panel](examples/screenshots/cost-breakdown-panel.png)](examples/screenshots/cost-breakdown-panel.png)
-
-[![History — verdicts & activity](examples/screenshots/history-verdicts-activity.png)](examples/screenshots/history-verdicts-activity.png)
-
-### Notifications
-
-[![Slack notification with Kibana link](examples/screenshots/slack-notification-kibana.png)](examples/screenshots/slack-notification-kibana.png)
-
----
 
 ## Quick Start
 
@@ -345,6 +267,60 @@ If no Kibana URL or Workflow ID is configured, Lurelit enters demo mode with sim
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+## Screenshots
+
+### Upload & Submission
+
+[![Upload hero — Light up the lures](examples/screenshots/upload-hero.png)](examples/screenshots/upload-hero.png)
+
+[![Multi-file upload](examples/screenshots/multi-file-upload.png)](examples/screenshots/multi-file-upload.png)
+
+### Analysis In Progress
+
+[![Analysis in progress with live step timeline](examples/screenshots/analysis-in-progress.png)](examples/screenshots/analysis-in-progress.png)
+
+[![Active analyses bar](examples/screenshots/active-analyses-bar.png)](examples/screenshots/active-analyses-bar.png)
+
+### Results & Verdicts
+
+[![Results verdict header](examples/screenshots/results-verdict-header.png)](examples/screenshots/results-verdict-header.png)
+
+[![Analysis complete with hunt results](examples/screenshots/analysis-complete-with-hunt-results.png)](examples/screenshots/analysis-complete-with-hunt-results.png)
+
+[![Result — spam, no threat](examples/screenshots/result-spam-no-threat.png)](examples/screenshots/result-spam-no-threat.png)
+
+### IOC Enrichment
+
+[![IOC enrichment results](examples/screenshots/ioc-enrichment-results.png)](examples/screenshots/ioc-enrichment-results.png)
+
+[![Enrichment summary with hunt recommendations](examples/screenshots/enrichment-summary-hunt-recommendations.png)](examples/screenshots/enrichment-summary-hunt-recommendations.png)
+
+### Threat Hunting
+
+[![Threat hunt results](examples/screenshots/threat-hunt-results.png)](examples/screenshots/threat-hunt-results.png)
+
+### Human-in-the-Loop
+
+[![HITL approval — full view](examples/screenshots/hitl-approval-full.png)](examples/screenshots/hitl-approval-full.png)
+
+[![HITL approval — header](examples/screenshots/hitl-approval-header.png)](examples/screenshots/hitl-approval-header.png)
+
+[![HITL approval — prompt UI](examples/screenshots/hitl-approval-prompt-ui.png)](examples/screenshots/hitl-approval-prompt-ui.png)
+
+[![HITL approval — step card](examples/screenshots/hitl-approval-step-card.png)](examples/screenshots/hitl-approval-step-card.png)
+
+### Dashboard & Metrics
+
+[![Dashboard metrics with Sankey diagram](examples/screenshots/dashboard-metrics-sankey.png)](examples/screenshots/dashboard-metrics-sankey.png)
+
+[![Cost breakdown panel](examples/screenshots/cost-breakdown-panel.png)](examples/screenshots/cost-breakdown-panel.png)
+
+[![History — verdicts & activity](examples/screenshots/history-verdicts-activity.png)](examples/screenshots/history-verdicts-activity.png)
+
+### Notifications
+
+[![Slack notification with Kibana link](examples/screenshots/slack-notification-kibana.png)](examples/screenshots/slack-notification-kibana.png)
 
 ## License
 
