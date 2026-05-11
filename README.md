@@ -219,8 +219,8 @@ The workflow YAML is included at `workflow/phishing-smishing-screenshot-analyzer
 - **React 19** — Client components with hooks
 - **TypeScript** — Strict mode throughout
 - **Tailwind CSS** — Utility classes + custom CSS properties
-- **[Elastic Workflows](https://www.elastic.co/docs/solutions/security/ai/workflows)** — Agentic execution engine
-- **[Agent Builder](https://www.elastic.co/docs/solutions/security/ai/agent-builder)** — AI agent orchestration for threat hunting
+- **[Elastic Workflows](https://www.elastic.co/docs/explore-analyze/workflows)** — Agentic execution engine
+- **[Agent Builder](https://www.elastic.co/docs/explore-analyze/ai-features/elastic-agent-builder)** — AI agent orchestration for threat hunting
 
 ### API Routes
 
