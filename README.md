@@ -14,7 +14,7 @@
   <em>Named for the anglerfish's bioluminescent lure — Lurelit illuminates the deceptive glow of phishing attacks, making the invisible threat visible.</em>
 </p>
 
-**[View Documentation & Screenshots →](https://github.com/jamesspi/lurelit-site)**
+**[Documentation](https://lurelit.ai/docs)** · **[Screenshots](https://lurelit.ai/screenshots)**
 
 ---
 
@@ -284,8 +284,6 @@ If no Kibana URL or Workflow ID is configured, Lurelit enters demo mode with sim
 
 [![Results verdict header](docs/screenshots/results-verdict-header.png)](docs/screenshots/results-verdict-header.png)
 
-[![Analysis complete with hunt results](docs/screenshots/analysis-complete-with-hunt-results.png)](docs/screenshots/analysis-complete-with-hunt-results.png)
-
 [![Result — spam, no threat](docs/screenshots/result-spam-no-threat.png)](docs/screenshots/result-spam-no-threat.png)
 
 ### IOC Enrichment
@@ -303,10 +301,6 @@ If no Kibana URL or Workflow ID is configured, Lurelit enters demo mode with sim
 [![HITL approval — full view](docs/screenshots/hitl-approval-full.png)](docs/screenshots/hitl-approval-full.png)
 
 [![HITL approval — header](docs/screenshots/hitl-approval-header.png)](docs/screenshots/hitl-approval-header.png)
-
-[![HITL approval — prompt UI](docs/screenshots/hitl-approval-prompt-ui.png)](docs/screenshots/hitl-approval-prompt-ui.png)
-
-[![HITL approval — step card](docs/screenshots/hitl-approval-step-card.png)](docs/screenshots/hitl-approval-step-card.png)
 
 ### Dashboard & Metrics
 
