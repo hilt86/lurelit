@@ -1,0 +1,773 @@
+version: "1"
+name: Phishing & Smishing Screenshot Analyzer
+description: >
+  Accepts a base64-encoded screenshot of a suspected phishing email or smishing
+  text message. Uses Anthropic Opus 4.7 via the Messages API to analyze the
+  image, extract IOCs, and classify the threat. Enriches IOCs via VirusTotal and
+  urlscan.io, hunts for confirmed malicious indicators in the environment, and
+  returns a formatted report.
+enabled: true
+triggers:
+  - type: manual
+
+inputs:
+  - description: "Base64-encoded screenshot image data (PNG or JPEG)"
+    name: image_base64
+    type: string
+  - default: "image/png"
+    description: "MIME type of the image (e.g. image/png, image/jpeg)"
+    name: media_type
+    type: string
+  - default: true
+    description: Whether to perform environment threat hunting. Set to false to skip the AI hunt step entirely (cost savings).
+    name: hunt_enabled
+    type: boolean
+
+steps:
+  # ──────────────────────────────────────────────
+  # Step 1 – Send screenshot to Anthropic Opus 4.7
+  # ──────────────────────────────────────────────
+  - name: analyze_screenshot
+    type: http
+    connector-id: anthropic-api
+    with:
+      method: POST
+      headers:
+        anthropic-version: "2023-06-01"
+        content-type: "application/json"
+      body:
+        model: claude-opus-4-7
+        max_tokens: 128000
+        messages:
+          - role: "user"
+            content:
+              - type: "image"
+                source:
+                  type: "base64"
+                  media_type: "{{ inputs.media_type }}"
+                  data: "{{ inputs.image_base64 }}"
+              - type: "text"
+                text: |-
+                  You are a cybersecurity analyst specializing in classifying suspicious messages. Analyze this screenshot of a message (SMS/text message or email).
+
+                  ## Your task
+
+                  1. Classify the message into ONE of these categories:
+                     - `phishing_email` — Email designed to steal credentials, deliver malware, or commit financial fraud (impersonates a brand/person, urges credential entry, contains malicious links/attachments)
+                     - `smishing` — SMS equivalent of phishing (impersonates a brand, urges link click for credential theft or payment fraud)
+                     - `spam` — Unsolicited bulk message that is annoying but NOT designed to steal credentials or money (marketing, promotions, political messaging, low-effort scams without credible threat infrastructure)
+                     - `legitimate` — Genuine, expected communication
+                     - `unknown` — Insufficient information to classify
+
+                  2. **Critical distinction — phishing/smishing vs spam:**
+                     - Phishing/smishing has malicious INTENT to harm: steal credentials, deliver malware, commit fraud, harvest data
+                     - Spam has commercial/promotional intent that is annoying but not directly harmful: ads, newsletters, political solicitations, sweepstakes you didn't enter
+                     - Promotional SMS from a real business with no credential-theft hook = spam, not smishing
+                     - A message asking you to "click here to claim your prize" with a suspicious URL = smishing
+                     - When unsure between spam and smishing, examine the URL/domain: lookalike domains, suspicious TLDs (.vip, .top, .help, .info), or URL shorteners hiding the destination point to smishing
+
+                  3. Extract ALL Indicators of Compromise (IOCs) visible in the image:
+                     - URLs / domains
+                     - IP addresses
+                     - Email addresses (sender)
+                     - File hashes (if visible)
+                     - Phone numbers (sender, for smishing)
+
+                  4. Set `is_phishing` to true ONLY for `phishing_email` or `smishing`. Spam should have `is_phishing: false`.
+
+                  5. Confidence scoring rubric:
+                     - 90-100: Clear-cut case with multiple strong indicators (e.g. brand impersonation + credential prompt + suspicious domain)
+                     - 70-89: Strong indicators but some ambiguity
+                     - 50-69: Suspicious but could be legitimate or could be spam vs phishing
+                     - Below 50: Insufficient evidence to be confident
+
+                     Be conservative with high scores for `spam` — most spam classifications should be 60-85 unless extremely obvious.
+
+                  Respond ONLY with valid JSON in this exact format:
+                  {
+                    "is_phishing": true/false,
+                    "confidence_score": 0-100,
+                    "type": "phishing_email" | "smishing" | "spam" | "legitimate" | "unknown",
+                    "summary": "Brief description of why this classification was chosen, including the spam vs phishing distinction if relevant",
+                    "iocs": [
+                      {
+                        "type": "url" | "domain" | "ip" | "hash" | "email" | "phone",
+                        "value": "the indicator value"
+                      }
+                    ],
+                    "red_flags": ["list of suspicious elements observed"]
+                  }
+    timeout: 120s
+
+  # ──────────────────────────────────────────────
+  # Step 2 – Parse the LLM response
+  # ──────────────────────────────────────────────
+  - name: parse_analysis
+    type: data.parseJson
+    source: "{{ steps.analyze_screenshot.output.data.content[0].text }}"
+    with: {}
+
+  - name: log_analysis
+    type: console
+    with:
+      message: "Analysis complete — is_phishing: {{ steps.parse_analysis.output.is_phishing }}, IOC count: {{ steps.parse_analysis.output.iocs | size }}, confidence: {{ steps.parse_analysis.output.confidence_score }}"
+
+  # ──────────────────────────────────────────────
+  # Step 3 – Enrich IOCs via VirusTotal & urlscan.io
+  # ──────────────────────────────────────────────
+  - name: enrich_urls
+    type: foreach
+    if: "steps.parse_analysis.output.iocs : *"
+    foreach: "{{ steps.parse_analysis.output.iocs | where: 'type', 'url' | json }}"
+    steps:
+      - name: log_url_ioc
+        type: console
+        with:
+          message: "Enriching URL IOC: {{ foreach.item.value }}"
+      - name: vt_url_submit
+        type: http
+        connector-id: vt-url
+        on-failure:
+          continue: true
+        timeout: 30s
+        with:
+          body: url={{ foreach.item.value }}
+          headers:
+            content-type: application/x-www-form-urlencoded
+          method: POST
+      - name: vt_url_poll_wait_initial
+        type: wait
+        with:
+          duration: 15s
+      - name: vt_url_poll_check
+        type: http
+        connector-id: vt-base
+        on-failure:
+          continue: true
+        timeout: 30s
+        with:
+          method: GET
+          path: /analyses/{{ steps.vt_url_submit.output.data.data.id }}
+      - name: vt_url_poll_2
+        type: if
+        condition: "steps.vt_url_poll_check.output.data.data.attributes.status : queued"
+        steps:
+          - name: vt_url_poll_wait_2
+            type: wait
+            with:
+              duration: 20s
+          - name: vt_url_poll_check_2
+            type: http
+            connector-id: vt-base
+            on-failure:
+              continue: true
+            timeout: 30s
+            with:
+              method: GET
+              path: /analyses/{{ steps.vt_url_submit.output.data.data.id }}
+      - name: vt_url_poll_3
+        type: if
+        condition: "steps.vt_url_poll_check.output.data.data.attributes.status : queued and steps.vt_url_poll_2.vt_url_poll_check_2.output.data.data.attributes.status : queued"
+        steps:
+          - name: vt_url_poll_wait_3
+            type: wait
+            with:
+              duration: 20s
+          - name: vt_url_poll_check_3
+            type: http
+            connector-id: vt-base
+            on-failure:
+              continue: true
+            timeout: 30s
+            with:
+              method: GET
+              path: /analyses/{{ steps.vt_url_submit.output.data.data.id }}
+      - name: urlscan_url_search
+        type: http
+        connector-id: url-scan-search
+        on-failure:
+          continue: true
+        timeout: 30s
+        with:
+          method: GET
+          query:
+            q: "page.url:\"{{ foreach.item.value }}\" OR domain:{{ foreach.item.value | split: '/' | slice: 2, 1 | first }}"
+            size: "5"
+  - name: capture_url_enrichment
+    type: data.set
+    with:
+      vt_url_stats: "{% if steps.enrich_urls.vt_url_poll_3.vt_url_poll_check_3.output.data.data.attributes.stats %}{{ steps.enrich_urls.vt_url_poll_3.vt_url_poll_check_3.output.data.data.attributes.stats | json }}{% elsif steps.enrich_urls.vt_url_poll_2.vt_url_poll_check_2.output.data.data.attributes.stats %}{{ steps.enrich_urls.vt_url_poll_2.vt_url_poll_check_2.output.data.data.attributes.stats | json }}{% elsif steps.enrich_urls.vt_url_poll_check.output.data.data.attributes.stats %}{{ steps.enrich_urls.vt_url_poll_check.output.data.data.attributes.stats | json }}{% else %}{% endif %}"
+      vt_url_analyzed: "{% if steps.enrich_urls.vt_url_poll_3.vt_url_poll_check_3.output.data.data.attributes.url %}{{ steps.enrich_urls.vt_url_poll_3.vt_url_poll_check_3.output.data.data.attributes.url }}{% elsif steps.enrich_urls.vt_url_poll_2.vt_url_poll_check_2.output.data.data.attributes.url %}{{ steps.enrich_urls.vt_url_poll_2.vt_url_poll_check_2.output.data.data.attributes.url }}{% elsif steps.enrich_urls.vt_url_poll_check.output.data.data.attributes.url %}{{ steps.enrich_urls.vt_url_poll_check.output.data.data.attributes.url }}{% else %}{% endif %}"
+      urlscan_url_total: "{{ steps.enrich_urls.urlscan_url_search.output.data.total }}"
+  - name: enrich_domains
+    type: foreach
+    if: "steps.parse_analysis.output.iocs : *"
+    foreach: "{{ steps.parse_analysis.output.iocs | where: 'type', 'domain' | json }}"
+    steps:
+      - name: log_domain_ioc
+        type: console
+        with:
+          message: "Enriching domain IOC: {{ foreach.item.value }}"
+      - name: urlscan_domain_search
+        on-failure:
+          continue: true
+        timeout: 30s
+        type: http
+        connector-id: url-scan-search
+        with:
+          method: GET
+          query:
+            q: domain:{{ foreach.item.value }}
+            size: "5"
+  - name: capture_domain_enrichment
+    type: data.set
+    with:
+      urlscan_domain_total: "{{ steps.enrich_domains.urlscan_domain_search.output.data.total }}"
+  - name: enrich_hashes
+    type: foreach
+    if: "steps.parse_analysis.output.iocs : *"
+    foreach: "{{ steps.parse_analysis.output.iocs | where: 'type', 'hash' | json }}"
+    steps:
+      - name: log_hash_ioc
+        type: console
+        with:
+          message: "Enriching hash IOC: {{ foreach.item.value }}"
+      - name: vt_hash_lookup
+        on-failure:
+          continue: true
+        timeout: 30s
+        type: http
+        connector-id: vt-files
+        with:
+          method: GET
+          path: /{{ foreach.item.value }}
+      - name: vt_hash_wait_initial
+        type: wait
+        with:
+          duration: 15s
+      - condition: "steps.enrich_hashes.vt_hash_poll.vt_hash_check.output.data.data.attributes.last_analysis_results : NOT *"
+        max-iterations: 6
+        name: vt_hash_poll
+        steps:
+          - name: vt_hash_check
+            on-failure:
+              continue: true
+            timeout: 30s
+            type: http
+            connector-id: vt-files
+            with:
+              method: GET
+              path: /{{ foreach.item.value }}
+          - name: vt_hash_poll_wait
+            type: wait
+            with:
+              duration: 10s
+        type: while
+  - name: enrich_ips
+    type: foreach
+    if: "steps.parse_analysis.output.iocs : *"
+    foreach: "{{ steps.parse_analysis.output.iocs | where: 'type', 'ip' | json }}"
+    steps:
+      - name: log_ip_ioc
+        type: console
+        with:
+          message: "Enriching IP IOC: {{ foreach.item.value }}"
+      - connector-id: e1b12cac-5d17-4e4c-a087-3692a44e45d1
+        name: vt_ip_lookup
+        on-failure:
+          continue: true
+        type: virustotal.getIpReport
+        with:
+          ip: "{{ foreach.item.value }}"
+      - name: urlscan_ip_search
+        on-failure:
+          continue: true
+        timeout: 30s
+        type: http
+        connector-id: url-scan-search
+        with:
+          method: GET
+          query:
+            q: ip:{{ foreach.item.value }}
+            size: "5"
+
+  # ──────────────────────────────────────────────
+  # Step 4 – Summarize enrichment results
+  # ──────────────────────────────────────────────
+  - name: summarize_enrichment
+    type: ai.agent
+    create-conversation: true
+    connector-id: .anthropic-claude-4.6-opus-chat_completion
+    if: "steps.parse_analysis.output.iocs : *"
+    with:
+      message: |-
+        ## CRITICAL: Stop over-classifying
+
+        You have a systematic bias toward marking IOCs as "medium" confidence malicious. This creates false positives and wastes analyst time on hunts that find nothing.
+
+        A domain being hyphenated is NOT suspicious. Millions of legitimate businesses use hyphens.
+        A .co TLD is NOT suspicious. It's used by major companies (stripe.co, angel.co, etc.).
+        A generic brand name is NOT suspicious unless it's actively impersonating a SPECIFIC known brand.
+        A UID parameter in a URL is NOT suspicious. Every SaaS product uses user IDs in URLs.
+        A "rewards" or "points" theme is NOT suspicious. Loyalty programs are a massive legitimate industry.
+
+        ## When to mark "medium":
+        - The domain is ACTIVELY IMPERSONATING a specific real brand (microsoftonline.uk, arnazon.co)
+        - The TLD is on the high-abuse list (.top, .xyz, .vip, .click, .info, .download, .help) AND the domain mimics a known brand
+        - The URL contains obvious credential-harvesting paths (/login, /signin, /verify-password, /secure-account)
+        - Multiple concurrent red flags that can't be explained by a legitimate business
+
+        ## When to mark "low":
+        - Hyphenated domain with a common TLD (.com, .co, .io, .net, .org) that doesn't impersonate anyone specific
+        - Generic brand names in marketing emails (shop-points-plus, growth-lab, deal-finder)
+        - Spam/marketing infrastructure that is annoying but not credential-stealing
+
+        If VT and urlscan returned NO malicious detections and the domain isn't impersonating a specific brand, the default should be "low" — NOT "medium".
+
+        ---
+
+        You are a cybersecurity analyst. Analyze the following IOCs extracted from a suspicious message and determine which are TRULY malicious (i.e. would warrant a hunt in the environment).
+
+        Screenshot analysis results:
+        {{ steps.parse_analysis.output | json }}
+
+        ## External enrichment results (from previous steps)
+
+        ### VirusTotal URL scan results:
+        {% if steps.capture_url_enrichment.output.vt_url_stats %}
+        URL analyzed: {{ steps.capture_url_enrichment.output.vt_url_analyzed }}
+        VT stats: {{ steps.capture_url_enrichment.output.vt_url_stats }}
+        {% else %}
+        No VirusTotal URL scan results available.
+        {% endif %}
+
+        ### urlscan.io URL search results:
+        {% if steps.capture_url_enrichment.output.urlscan_url_total %}
+        Total urlscan results for URL: {{ steps.capture_url_enrichment.output.urlscan_url_total }}
+        {% else %}
+        No urlscan.io URL results available.
+        {% endif %}
+
+        ### urlscan.io domain search results:
+        {% if steps.capture_domain_enrichment.output.urlscan_domain_total %}
+        Total urlscan results for domain: {{ steps.capture_domain_enrichment.output.urlscan_domain_total }}
+        {% else %}
+        No urlscan.io domain results available.
+        {% endif %}
+
+        **CRITICAL:** If VT stats show `"malicious"` count > 0, this IS external tool confirmation. You MUST set confidence to "high" for that IOC. Do NOT ignore this data.
+
+        ## Classification context
+
+        The message was classified as: **{{ steps.parse_analysis.output.type }}** with confidence **{{ steps.parse_analysis.output.confidence_score }}%**
+
+        ## How to evaluate IOCs
+
+        **Malicious threshold (worth hunting):**
+        - Domain impersonating a legitimate brand (lookalike, typosquat, prepended subdomain)
+        - Suspicious TLDs commonly used in phishing (.vip, .top, .help, .info, .xyz, .click, .download)
+        - URL shorteners or redirects hiding the true destination
+        - Domains/IPs known to be associated with phishing kits or malware C2
+        - Newly registered domains mimicking brands
+        - Email addresses from suspicious or impersonating domains
+
+        **NOT worth marking as malicious (low harm, high false-positive risk):**
+        - Legitimate marketing/promotional URLs (real businesses, real domains)
+        - Spam URLs that are merely annoying (e.g., real political campaign sites, real sweepstakes promoters, legitimate but unwanted newsletters)
+        - Generic URL shorteners used by legitimate services
+        - Phone numbers from spam callers (unless tied to a specific known fraud campaign)
+
+        **Special guidance for `spam` classification:**
+        If the message was classified as `spam` (not phishing/smishing), be conservative — only flag IOCs as malicious if they show clear technical indicators of malicious infrastructure. Most spam URLs are unwanted but not technically malicious.
+
+        **Special guidance for low-confidence classifications:**
+        If the original confidence is below 70, lean toward marking IOCs as suspicious-but-not-confirmed-malicious unless the evidence is overwhelming.
+
+        ## Confidence calibration
+
+        For each IOC you assess, set `confidence` using these strict criteria:
+
+        - `"high"` — VirusTotal malicious count >= 1, OR urlscan total results >= 1 with malicious verdict, OR obvious brand typosquatting. CHECK THE VT/URLSCAN RESULTS ABOVE before defaulting to "medium".
+        - `"medium"` — Suspicious characteristics without external tool confirmation: suspicious TLD, generic/hyphenated domain, unverifiable business, potential zero-day infrastructure. Use this when domain analysis is concerning but the VT/urlscan results above show NO malicious detections.
+        - `"low"` — Minor concerns, likely benign. Real businesses with legitimate-looking domains, common TLDs, or IOCs with no clear malicious indicators.
+
+        **NEVER use "high" confidence based solely on domain characteristics or AI assessment.** Domain analysis alone (suspicious TLD, hyphenated name, generic branding) is "medium" at most. High requires EVIDENCE from the external tool results shown above or unambiguous brand impersonation.
+
+        ## Language requirements
+
+        NEVER use the word "confirmed" unless the VT/urlscan results above actually show malicious detections. Domain analysis alone is assessment, not confirmation.
+
+        Use this language:
+        - "Likely malicious" — suspicious characteristics, medium confidence
+        - "Confirmed malicious" — ONLY when VT/urlscan results above show malicious detections
+        - "Suspicious" — red flags but inconclusive
+        - "Low-risk" — unlikely malicious
+
+        ## has_malicious_iocs field
+
+        Set `has_malicious_iocs` to `true` if at least one IOC has confidence "high" OR "medium".
+        Set it to `false` only if ALL IOCs are "low" confidence.
+
+        This field indicates whether a hunt MIGHT be warranted — the decision to actually hunt will be made by either automation or human approval depending on classification confidence and IOC confidence levels.
+
+        ## Output
+
+        For each IOC you assess, include:
+        - `type`: the IOC type
+        - `value`: the IOC value
+        - `confidence`: "high", "medium", or "low" per the strict criteria above
+        - `details`: 1-2 sentence justification that explicitly references the VT/urlscan results shown above
+
+        The summary should explicitly state whether this warrants a hunt in the environment, and why. If recommending a hunt without external tool confirmation, state that it's based on domain/infrastructure analysis and pending confirmation.
+      schema:
+        properties:
+          has_malicious_iocs:
+            description: Whether any IOCs were confirmed malicious and warrant hunting
+            type: boolean
+          malicious_indicators:
+            items:
+              properties:
+                confidence:
+                  type: string
+                details:
+                  type: string
+                type:
+                  type: string
+                value:
+                  type: string
+              type: object
+            type: array
+          summary:
+            description: Overall enrichment summary, explicitly stating whether a hunt is warranted
+            type: string
+        required:
+          - has_malicious_iocs
+          - malicious_indicators
+          - summary
+        type: object
+  - name: get_summarize_consumption
+    type: kibana.request
+    if: "steps.summarize_enrichment.output.conversation_id : *"
+    with:
+      method: POST
+      path: /api/agent_builder/agents/elastic-ai-agent/consumption
+      body:
+        size: 25
+        sort_field: updated_at
+        sort_order: desc
+    on-failure:
+      continue: true
+  - name: filter_summarize_consumption
+    type: foreach
+    if: "steps.summarize_enrichment.output.conversation_id : *"
+    foreach: ${{ steps.get_summarize_consumption.output.results }}
+    steps:
+      - name: check_summarize_match
+        type: if
+        condition: 'foreach.item.conversation_id : "{{ steps.summarize_enrichment.output.conversation_id }}"'
+        steps:
+          - name: set_summarize_tokens
+            type: data.set
+            with:
+              input_tokens: ${{ foreach.item.token_usage.input_tokens }}
+              output_tokens: ${{ foreach.item.token_usage.output_tokens }}
+              total_tokens: ${{ foreach.item.token_usage.total_tokens }}
+              llm_calls: ${{ foreach.item.llm_calls }}
+  - name: parse_enrichment_summary
+    type: data.parseJson
+    if: "steps.parse_analysis.output.iocs : *"
+    with: {}
+    source: "{{ steps.summarize_enrichment.output.structured_output | json }}"
+
+  # ──────────────────────────────────────────────
+  # Step 5 – Hunt routing (auto-hunt vs HITL)
+  # ──────────────────────────────────────────────
+  - name: hunt_router
+    type: if
+    condition: 'inputs.hunt_enabled : true and steps.parse_enrichment_summary.output.has_malicious_iocs : true and steps.parse_analysis.output.confidence_score >= 85 and (steps.parse_analysis.output.type : "phishing_email" or steps.parse_analysis.output.type : "smishing") and (steps.parse_enrichment_summary.output.malicious_indicators[0].confidence : "high" or steps.parse_enrichment_summary.output.malicious_indicators[0].confidence : "medium")'
+    steps:
+      - name: hunt_in_environment
+        type: ai.agent
+        connector-id: .anthropic-claude-4.6-opus-chat_completion
+        create-conversation: true
+        timeout: 500s
+        with:
+          message: |-
+            You are a threat hunter. The following IOCs have been confirmed malicious from a phishing/smishing analysis. Hunt for any evidence of these indicators in the environment using your available threat hunting skills and ES|QL queries.
+
+            For each malicious indicator, search across relevant indices (logs-*, filebeat-*, .alerts-security.*, etc.) for any matches.
+
+            Malicious indicators to hunt for:
+            {{ steps.parse_enrichment_summary.output.malicious_indicators | json }}
+
+            For each indicator:
+            - If it's a URL or domain: search DNS logs, proxy logs, and network logs
+            - If it's an IP: search network flow data, firewall logs, and connection logs
+            - If it's a hash: search endpoint telemetry and file creation events
+            - If it's an email: search email gateway logs
+
+            Provide a detailed report of any hits found, including affected hosts, timestamps, and the context of each match.
+      - name: wait_for_hunt_consumption
+        type: wait
+        with:
+          duration: 5s
+      - name: get_hunt_consumption
+        type: kibana.request
+        with:
+          method: POST
+          path: /api/agent_builder/agents/elastic-ai-agent/consumption
+          body:
+            size: 25
+            sort_field: updated_at
+            sort_order: desc
+        on-failure:
+          continue: true
+      - name: filter_hunt_consumption
+        type: foreach
+        foreach: ${{ steps.get_hunt_consumption.output.results }}
+        steps:
+          - name: check_hunt_match
+            type: if
+            condition: 'foreach.item.conversation_id : "{{ steps.hunt_in_environment.output.conversation_id }}"'
+            steps:
+              - name: set_hunt_tokens
+                type: data.set
+                with:
+                  input_tokens: ${{ foreach.item.token_usage.input_tokens }}
+                  llm_calls: ${{ foreach.item.llm_calls }}
+                  output_tokens: ${{ foreach.item.token_usage.output_tokens }}
+                  total_tokens: ${{ foreach.item.token_usage.total_tokens }}
+    else:
+      - name: hitl_router
+        type: if
+        condition: 'inputs.hunt_enabled : true and (steps.parse_enrichment_summary.output.has_malicious_iocs : true or (steps.parse_analysis.output.confidence_score >= 85 and (steps.parse_analysis.output.type : "phishing_email" or steps.parse_analysis.output.type : "smishing")))'
+        steps:
+          - name: ask_hunt_approval
+            type: waitForInput
+            with:
+              message: |-
+                This analysis requires your decision before proceeding with an environment hunt.
+
+                **Classification:** {{ steps.parse_analysis.output.type }} ({{ steps.parse_analysis.output.confidence_score }}% confidence)
+                **Summary:** {{ steps.parse_analysis.output.summary }}
+
+                **Enrichment assessment:** {{ steps.parse_enrichment_summary.output.summary }}
+
+                **Why approval is needed:** The IOC assessment did not reach the threshold for automatic hunting (requires ≥85% phishing/smishing confidence AND externally-confirmed malicious IOCs). This could be because:
+                - The classification confidence is below 85%, OR
+                - The IOCs have not been confirmed by external tools (possible zero-day), OR
+                - The message was classified as spam/unknown
+
+                Do you want to proceed with hunting these indicators in the environment?
+              schema:
+                type: object
+                properties:
+                  proceed_with_hunt:
+                    default: false
+                    description: Set to true to hunt for the indicators in the environment, false to skip the hunt and finalize the report.
+                    type: boolean
+                  reason:
+                    description: Optional reason for your decision (logged in the report).
+                    type: string
+                required:
+                  - proceed_with_hunt
+          - name: approved_hunt_router
+            type: if
+            condition: "steps.ask_hunt_approval.output.proceed_with_hunt : true"
+            steps:
+              - name: hunt_in_environment_after_approval
+                type: ai.agent
+                connector-id: .anthropic-claude-4.6-opus-chat_completion
+                create-conversation: true
+                timeout: 500s
+                with:
+                  message: |-
+                    You are a threat hunter. The following IOCs have been flagged as suspicious from a phishing/smishing analysis and a human analyst approved this hunt. Hunt for any evidence of these indicators in the environment using your available threat hunting skills and ES|QL queries.
+
+                    For each indicator, search across relevant indices (logs-*, filebeat-*, .alerts-security.*, etc.) for any matches.
+
+                    Indicators to hunt for:
+                    {{ steps.parse_enrichment_summary.output.malicious_indicators | json }}
+
+                    For each indicator:
+                    - If it's a URL or domain: search DNS logs, proxy logs, and network logs
+                    - If it's an IP: search network flow data, firewall logs, and connection logs
+                    - If it's a hash: search endpoint telemetry and file creation events
+                    - If it's an email: search email gateway logs
+
+                    Provide a detailed report of any hits found, including affected hosts, timestamps, and the context of each match.
+              - name: wait_for_hunt_consumption_after_approval
+                type: wait
+                with:
+                  duration: 5s
+              - name: get_hunt_consumption_after_approval
+                type: kibana.request
+                with:
+                  method: POST
+                  path: /api/agent_builder/agents/elastic-ai-agent/consumption
+                  body:
+                    size: 25
+                    sort_field: updated_at
+                    sort_order: desc
+                on-failure:
+                  continue: true
+              - name: filter_hunt_consumption_after_approval
+                type: foreach
+                foreach: ${{ steps.get_hunt_consumption_after_approval.output.results }}
+                steps:
+                  - name: check_hunt_match_after_approval
+                    type: if
+                    condition: 'foreach.item.conversation_id : "{{ steps.hunt_in_environment_after_approval.output.conversation_id }}"'
+                    steps:
+                      - name: set_hunt_tokens_after_approval
+                        type: data.set
+                        with:
+                          input_tokens: ${{ foreach.item.token_usage.input_tokens }}
+                          llm_calls: ${{ foreach.item.llm_calls }}
+                          output_tokens: ${{ foreach.item.token_usage.output_tokens }}
+                          total_tokens: ${{ foreach.item.token_usage.total_tokens }}
+    condition: 'inputs.hunt_enabled : true and steps.parse_enrichment_summary.output.has_malicious_iocs : true and steps.parse_analysis.output.confidence_score >= 85 and (steps.parse_analysis.output.type : "phishing_email" or steps.parse_analysis.output.type : "smishing") and (steps.parse_enrichment_summary.output.malicious_indicators[0].confidence : "high" or steps.parse_enrichment_summary.output.malicious_indicators[0].confidence : "medium")'
+
+  # ──────────────────────────────────────────────
+  # Step 6 – Format final report for the UI
+  # ──────────────────────────────────────────────
+  - name: format_report
+    type: data.set
+    with:
+      ai_cost_tracking:
+        analyze_screenshot:
+          input_tokens: "{{ steps.analyze_screenshot.output.data.usage.input_tokens }}"
+          model: "{{ steps.analyze_screenshot.output.data.model }}"
+          output_tokens: "{{ steps.analyze_screenshot.output.data.usage.output_tokens }}"
+        hunt_in_environment:
+          conversation_id: "{% if steps.hunt_in_environment.output.conversation_id %}{{ steps.hunt_in_environment.output.conversation_id }}{% else %}{{ steps.hunt_in_environment_after_approval.output.conversation_id }}{% endif %}"
+          input_tokens: "{% if steps.set_hunt_tokens.output.input_tokens %}{{ steps.set_hunt_tokens.output.input_tokens }}{% else %}{{ steps.set_hunt_tokens_after_approval.output.input_tokens }}{% endif %}"
+          llm_calls: "{% if steps.set_hunt_tokens.output.llm_calls %}{{ steps.set_hunt_tokens.output.llm_calls }}{% else %}{{ steps.set_hunt_tokens_after_approval.output.llm_calls }}{% endif %}"
+          output_tokens: "{% if steps.set_hunt_tokens.output.output_tokens %}{{ steps.set_hunt_tokens.output.output_tokens }}{% else %}{{ steps.set_hunt_tokens_after_approval.output.output_tokens }}{% endif %}"
+          total_tokens: "{% if steps.set_hunt_tokens.output.total_tokens %}{{ steps.set_hunt_tokens.output.total_tokens }}{% else %}{{ steps.set_hunt_tokens_after_approval.output.total_tokens }}{% endif %}"
+        summarize_enrichment:
+          conversation_id: "{{ steps.summarize_enrichment.output.conversation_id }}"
+          input_tokens: "{{ steps.set_summarize_tokens.output.input_tokens }}"
+          llm_calls: "{{ steps.set_summarize_tokens.output.llm_calls }}"
+          output_tokens: "{{ steps.set_summarize_tokens.output.output_tokens }}"
+          total_tokens: "{{ steps.set_summarize_tokens.output.total_tokens }}"
+      classification_confidence: "{{ steps.parse_analysis.output.confidence_score }}"
+      classification_is_phishing: "{{ steps.parse_analysis.output.is_phishing }}"
+      classification_red_flags: |-
+        {% for flag in steps.parse_analysis.output.red_flags %}• {{ flag }}
+        {% endfor %}
+      classification_summary: "{{ steps.parse_analysis.output.summary }}"
+      classification_type: "{{ steps.parse_analysis.output.type }}"
+      enrichment_summary: "{% if steps.parse_enrichment_summary.output.summary %}{{ steps.parse_enrichment_summary.output.summary }}{% else %}No IOCs to enrich{% endif %}"
+      hunt_results: "{% if steps.hunt_in_environment.output.message %}{{ steps.hunt_in_environment.output.message }}{% elsif steps.hunt_in_environment_after_approval.output.message %}{{ steps.hunt_in_environment_after_approval.output.message }}{% else %}No hunt performed — either no malicious IOCs or hunt not approved by analyst{% endif %}"
+      iocs_found: |-
+        {% for ioc in steps.parse_analysis.output.iocs %}• `{{ ioc.type }}` — {{ ioc.value }}
+        {% endfor %}
+      malicious_indicators: |-
+        {% if steps.parse_enrichment_summary.output.malicious_indicators %}{% for ind in steps.parse_enrichment_summary.output.malicious_indicators %}• `{{ ind.type }}` — `{{ ind.value }}` ({{ ind.confidence }}): {{ ind.details }}
+        {% endfor %}{% else %}_None confirmed_{% endif %}
+      title: "Phishing/Smishing Analysis Report"
+
+  - name: log_report
+    type: console
+    with:
+      message: "{{ steps.format_report.output | json }}"
+  - name: format_slack_message
+    type: ai.prompt
+    connector-id: .anthropic-claude-4.6-sonnet-chat_completion
+    with:
+      systemPrompt: |-
+        You are a Slack message formatter. You convert phishing analysis reports into concise, well-structured Slack mrkdwn messages. Rules:
+        - Use Slack mrkdwn: *bold*, _italic_, `code`, ```code blocks```
+        - Do NOT use Markdown syntax like **bold** or [links](url) — Slack doesn't support those
+        - Be extremely concise — cut fluff, keep only actionable insights
+        - Use bullet points (•) for lists
+        - Keep the total message under 2500 characters
+        - IOCs should be in a compact table-like format
+        - Enrichment summary should be 2-3 sentences max highlighting key findings
+        - Hunt results should be 1-2 sentences
+        - Omit sections that have no meaningful data
+      prompt: |-
+        Format this phishing analysis report for Slack. Make it concise and scannable.
+
+        Report data:
+        - Verdict: {{ steps.format_report.output.classification_is_phishing }}
+        - Type: {{ steps.format_report.output.classification_type }}
+        - Confidence: {{ steps.format_report.output.classification_confidence }}%
+        - Summary: {{ steps.format_report.output.classification_summary }}
+        - Red Flags:
+        {{ steps.format_report.output.classification_red_flags }}
+        - IOCs Found:
+        {{ steps.format_report.output.iocs_found }}
+        - Malicious Indicators:
+        {{ steps.format_report.output.malicious_indicators }}
+        - Enrichment Summary:
+        {{ steps.format_report.output.enrichment_summary }}
+        - Hunt Results:
+        {{ steps.format_report.output.hunt_results }}
+        - AI Cost - Screenshot: model={{ steps.format_report.output.ai_cost_tracking.analyze_screenshot.model }}, in={{ steps.format_report.output.ai_cost_tracking.analyze_screenshot.input_tokens }}, out={{ steps.format_report.output.ai_cost_tracking.analyze_screenshot.output_tokens }}
+        - AI Cost - Enrichment: in={{ steps.format_report.output.ai_cost_tracking.summarize_enrichment.input_tokens }}, out={{ steps.format_report.output.ai_cost_tracking.summarize_enrichment.output_tokens }}, calls={{ steps.format_report.output.ai_cost_tracking.summarize_enrichment.llm_calls }}
+        - AI Cost - Hunt: in={{ steps.format_report.output.ai_cost_tracking.hunt_in_environment.input_tokens }}, out={{ steps.format_report.output.ai_cost_tracking.hunt_in_environment.output_tokens }}, calls={{ steps.format_report.output.ai_cost_tracking.hunt_in_environment.llm_calls }}
+      schema:
+        type: object
+        properties:
+          blocks:
+            type: array
+            description: >-
+              Array of Slack Block Kit block objects ready to use in
+              chat.postMessage. Use header, section (with mrkdwn text),
+              divider, and context blocks. Each section text must be under
+              3000 chars. The message should have header with verdict emoji,
+              verdict/type/confidence fields, concise summary, IOCs as compact
+              list, key findings from enrichment, hunt results if any, and AI
+              cost footer.
+            items:
+              type: object
+              properties:
+                type:
+                  type: string
+                text:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    text:
+                      type: string
+                    emoji:
+                      type: boolean
+                  additionalProperties: false
+                fields:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      text:
+                        type: string
+                    additionalProperties: false
+                elements:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      text:
+                        type: string
+                    additionalProperties: false
+              additionalProperties: false
+        required:
+          - blocks
+      temperature: 0.1
+  - name: send_slack_report
+    type: http
+    connector-id: slack-post-message
+    with:
+      body:
+        blocks: ${{ steps.format_slack_message.output.content.blocks }}
+        channel: C0B2L2HU1EU
+        text: Phishing/Smishing Analysis Report
+      headers:
+        Content-Type: application/json
+      method: POST

@@ -1,0 +1,27 @@
+node_modules
+.next
+.git
+.gitignore
+.DS_Store
+.env*
+.smish-config.enc
+.avatars
+.vercel
+
+# Build artifacts
+out
+build
+coverage
+
+# Dev/test files
+test-screenshots
+terminals
+docs
+scripts
+*.md
+test_phishing_workflow.sh
+
+# IDE
+.vscode
+.idea
+*.swp

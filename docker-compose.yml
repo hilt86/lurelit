@@ -1,0 +1,11 @@
+version: '3.8'
+services:
+  lurelit:
+    build: .
+    ports:
+      - "5001:5001"
+    environment:
+      - KIBANA_URL=http://host.docker.internal:5601
+      - WORKFLOW_ID=your-workflow-id-here
+      - CONFIG_SECRET=change-me-to-a-random-string
+    restart: unless-stopped
