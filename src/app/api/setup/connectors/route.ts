@@ -147,8 +147,9 @@ async function createConnector(
       name: spec.name,
       config: {
         url: spec.url,
-        hasAuth: true,
+        hasAuth: false,
         authType: null,
+        headers: null,
       },
       secrets: {},
     };
@@ -157,8 +158,11 @@ async function createConnector(
   if (connectorType === 'anthropic-api') {
     body.config = {
       url: spec.url,
-      hasAuth: true,
+      hasAuth: false,
       authType: null,
+      headers: null,
+    };
+    body.secrets = {
       headers: {
         'x-api-key': credentials.apiKey || '',
         'anthropic-version': '2023-06-01',
@@ -168,8 +172,11 @@ async function createConnector(
   } else if (connectorType.startsWith('vt-')) {
     body.config = {
       url: spec.url,
-      hasAuth: true,
+      hasAuth: false,
       authType: null,
+      headers: null,
+    };
+    body.secrets = {
       headers: {
         'x-apikey': credentials.apiKey || '',
         'accept': 'application/json',
@@ -178,8 +185,11 @@ async function createConnector(
   } else if (connectorType === 'url-scan-search') {
     body.config = {
       url: spec.url,
-      hasAuth: true,
+      hasAuth: false,
       authType: null,
+      headers: null,
+    };
+    body.secrets = {
       headers: {
         'API-Key': credentials.apiKey || '',
         'accept': 'application/json',
@@ -188,8 +198,11 @@ async function createConnector(
   } else if (connectorType === 'slack-post-message') {
     body.config = {
       url: spec.url,
-      hasAuth: true,
+      hasAuth: false,
       authType: null,
+      headers: null,
+    };
+    body.secrets = {
       headers: {
         'Authorization': `Bearer ${credentials.apiKey || ''}`,
         'Content-Type': 'application/json',
