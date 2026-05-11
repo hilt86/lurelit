@@ -161,13 +161,13 @@ async function createConnector(
       hasAuth: false,
       authType: null,
       headers: null,
+      proxyUrl: null,
+      hasProxyAuth: false,
     };
     body.secrets = {
-      headers: {
-        'x-api-key': credentials.apiKey || '',
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
+      secretHeaders: { 'x-api-key': credentials.apiKey || '' },
+      proxyUsername: null,
+      proxyPassword: null,
     };
   } else if (connectorType.startsWith('vt-')) {
     body.config = {
@@ -175,12 +175,13 @@ async function createConnector(
       hasAuth: false,
       authType: null,
       headers: null,
+      proxyUrl: null,
+      hasProxyAuth: false,
     };
     body.secrets = {
-      headers: {
-        'x-apikey': credentials.apiKey || '',
-        'accept': 'application/json',
-      },
+      secretHeaders: { 'x-apikey': credentials.apiKey || '' },
+      proxyUsername: null,
+      proxyPassword: null,
     };
   } else if (connectorType === 'url-scan-search') {
     body.config = {
@@ -188,12 +189,13 @@ async function createConnector(
       hasAuth: false,
       authType: null,
       headers: null,
+      proxyUrl: null,
+      hasProxyAuth: false,
     };
     body.secrets = {
-      headers: {
-        'API-Key': credentials.apiKey || '',
-        'accept': 'application/json',
-      },
+      secretHeaders: { 'API-Key': credentials.apiKey || '' },
+      proxyUsername: null,
+      proxyPassword: null,
     };
   } else if (connectorType === 'slack-post-message') {
     body.config = {
@@ -201,12 +203,13 @@ async function createConnector(
       hasAuth: false,
       authType: null,
       headers: null,
+      proxyUrl: null,
+      hasProxyAuth: false,
     };
     body.secrets = {
-      headers: {
-        'Authorization': `Bearer ${credentials.apiKey || ''}`,
-        'Content-Type': 'application/json',
-      },
+      secretHeaders: { 'Authorization': `Bearer ${credentials.apiKey || ''}` },
+      proxyUsername: null,
+      proxyPassword: null,
     };
   }
 
