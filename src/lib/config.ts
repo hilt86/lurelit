@@ -37,7 +37,18 @@ function decrypt(data: string): string {
 }
 
 export function saveGlobalConfig(config: GlobalConfig): void {
-  writeFileSync(CONFIG_PATH, encrypt(JSON.stringify(config)), 'utf8');
+  const data = encrypt(JSON.stringify(config));
+  try {
+    writeFileSync(CONFIG_PATH, data, 'utf8');
+  } catch {
+    const fallback = join('/tmp', '.smish-config.enc');
+    try {
+      writeFileSync(fallback, data, 'utf8');
+      console.warn(`[Lurelit] Could not write config to ${CONFIG_PATH}, saved to ${fallback}`);
+    } catch (e) {
+      throw new Error(`Permission denied: cannot write config to ${CONFIG_PATH} or ${fallback}. Ensure the app directory is writable or use KIBANA_URL + WORKFLOW_ID environment variables instead. (${e})`);
+    }
+  }
 }
 
 export function loadGlobalConfig(): GlobalConfig | null {
@@ -45,14 +56,18 @@ export function loadGlobalConfig(): GlobalConfig | null {
     return { kibanaUrl: process.env.KIBANA_URL, workflowId: process.env.WORKFLOW_ID, huntEnabled: true };
   }
 
-  if (!existsSync(CONFIG_PATH)) return null;
-  try {
-    const json = decrypt(readFileSync(CONFIG_PATH, 'utf8'));
-    const parsed = JSON.parse(json);
-    return { huntEnabled: true, ...parsed } as GlobalConfig;
-  } catch {
-    return null;
+  const paths = [CONFIG_PATH, join('/tmp', '.smish-config.enc')];
+  for (const p of paths) {
+    if (!existsSync(p)) continue;
+    try {
+      const json = decrypt(readFileSync(p, 'utf8'));
+      const parsed = JSON.parse(json);
+      return { huntEnabled: true, ...parsed } as GlobalConfig;
+    } catch {
+      continue;
+    }
   }
+  return null;
 }
 
 export function clearGlobalConfig(): void {
