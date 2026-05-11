@@ -6,16 +6,36 @@ export async function register() {
     const crypto = require('crypto');
     const path = require('path');
 
-    const keyFile = path.join(process.cwd(), '.lurelit-admin-key');
+    const primaryKeyFile = path.join(process.cwd(), '.lurelit-admin-key');
+    const fallbackKeyFile = path.join('/tmp', '.lurelit-admin-key');
     let key = process.env.SETUP_SECRET || '';
 
     if (!key) {
-      if (fs.existsSync(keyFile)) {
-        key = fs.readFileSync(keyFile, 'utf8').trim();
+      for (const keyFile of [primaryKeyFile, fallbackKeyFile]) {
+        try {
+          if (fs.existsSync(keyFile)) {
+            key = fs.readFileSync(keyFile, 'utf8').trim();
+            break;
+          }
+        } catch {
+          // Can't read this path, try next
+        }
       }
       if (!key) {
         key = crypto.randomBytes(16).toString('hex');
-        fs.writeFileSync(keyFile, key, 'utf8');
+        let written = false;
+        for (const keyFile of [primaryKeyFile, fallbackKeyFile]) {
+          try {
+            fs.writeFileSync(keyFile, key, 'utf8');
+            written = true;
+            break;
+          } catch {
+            // Can't write to this path, try next
+          }
+        }
+        if (!written) {
+          console.warn('  ⚠ Could not persist admin key to disk. It will be regenerated on restart.');
+        }
       }
     }
 

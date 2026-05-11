@@ -25,6 +25,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+RUN mkdir -p /app/data && chown nextjs:nodejs /app/data && \
+    touch /app/.lurelit-admin-key && chown nextjs:nodejs /app/.lurelit-admin-key
+
 USER nextjs
 EXPOSE 5001
 
