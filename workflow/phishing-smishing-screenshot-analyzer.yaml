@@ -484,7 +484,6 @@ steps:
   # ──────────────────────────────────────────────
   - name: hunt_router
     type: if
-    condition: 'inputs.hunt_enabled : true and steps.parse_enrichment_summary.output.has_malicious_iocs : true and steps.parse_analysis.output.confidence_score >= 85 and (steps.parse_analysis.output.type : "phishing_email" or steps.parse_analysis.output.type : "smishing") and (steps.parse_enrichment_summary.output.malicious_indicators[0].confidence : "high" or steps.parse_enrichment_summary.output.malicious_indicators[0].confidence : "medium")'
     steps:
       - name: hunt_in_environment
         type: ai.agent
@@ -760,6 +759,8 @@ steps:
         required:
           - blocks
       temperature: 0.1
+    on-failure:
+      continue: true
   - name: send_slack_report
     type: http
     connector-id: slack-post-message
@@ -771,3 +772,5 @@ steps:
       headers:
         Content-Type: application/json
       method: POST
+    on-failure:
+      continue: true
