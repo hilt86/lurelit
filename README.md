@@ -1,8 +1,6 @@
 <p align="center">
-  <img src="public/favicon.svg" alt="Lurelit" width="80" />
+  <img src="docs/screenshots/hero-banner.png" alt="Lurelit — Agentic phishing analysis, powered by Elastic" width="600" />
 </p>
-
-<h1 align="center">Lurelit</h1>
 
 <p align="center">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
