@@ -272,55 +272,55 @@ If no Kibana URL or Workflow ID is configured, Lurelit enters demo mode with sim
 
 ### Upload & Submission
 
-[![Upload hero — Light up the lures](examples/screenshots/upload-hero.png)](examples/screenshots/upload-hero.png)
+[![Upload hero — Light up the lures](docs/screenshots/upload-hero.png)](docs/screenshots/upload-hero.png)
 
-[![Multi-file upload](examples/screenshots/multi-file-upload.png)](examples/screenshots/multi-file-upload.png)
+[![Multi-file upload](docs/screenshots/multi-file-upload.png)](docs/screenshots/multi-file-upload.png)
 
 ### Analysis In Progress
 
-[![Analysis in progress with live step timeline](examples/screenshots/analysis-in-progress.png)](examples/screenshots/analysis-in-progress.png)
+[![Analysis in progress with live step timeline](docs/screenshots/analysis-in-progress.png)](docs/screenshots/analysis-in-progress.png)
 
-[![Active analyses bar](examples/screenshots/active-analyses-bar.png)](examples/screenshots/active-analyses-bar.png)
+[![Active analyses bar](docs/screenshots/active-analyses-bar.png)](docs/screenshots/active-analyses-bar.png)
 
 ### Results & Verdicts
 
-[![Results verdict header](examples/screenshots/results-verdict-header.png)](examples/screenshots/results-verdict-header.png)
+[![Results verdict header](docs/screenshots/results-verdict-header.png)](docs/screenshots/results-verdict-header.png)
 
-[![Analysis complete with hunt results](examples/screenshots/analysis-complete-with-hunt-results.png)](examples/screenshots/analysis-complete-with-hunt-results.png)
+[![Analysis complete with hunt results](docs/screenshots/analysis-complete-with-hunt-results.png)](docs/screenshots/analysis-complete-with-hunt-results.png)
 
-[![Result — spam, no threat](examples/screenshots/result-spam-no-threat.png)](examples/screenshots/result-spam-no-threat.png)
+[![Result — spam, no threat](docs/screenshots/result-spam-no-threat.png)](docs/screenshots/result-spam-no-threat.png)
 
 ### IOC Enrichment
 
-[![IOC enrichment results](examples/screenshots/ioc-enrichment-results.png)](examples/screenshots/ioc-enrichment-results.png)
+[![IOC enrichment results](docs/screenshots/ioc-enrichment-results.png)](docs/screenshots/ioc-enrichment-results.png)
 
-[![Enrichment summary with hunt recommendations](examples/screenshots/enrichment-summary-hunt-recommendations.png)](examples/screenshots/enrichment-summary-hunt-recommendations.png)
+[![Enrichment summary with hunt recommendations](docs/screenshots/enrichment-summary-hunt-recommendations.png)](docs/screenshots/enrichment-summary-hunt-recommendations.png)
 
 ### Threat Hunting
 
-[![Threat hunt results](examples/screenshots/threat-hunt-results.png)](examples/screenshots/threat-hunt-results.png)
+[![Threat hunt results](docs/screenshots/threat-hunt-results.png)](docs/screenshots/threat-hunt-results.png)
 
 ### Human-in-the-Loop
 
-[![HITL approval — full view](examples/screenshots/hitl-approval-full.png)](examples/screenshots/hitl-approval-full.png)
+[![HITL approval — full view](docs/screenshots/hitl-approval-full.png)](docs/screenshots/hitl-approval-full.png)
 
-[![HITL approval — header](examples/screenshots/hitl-approval-header.png)](examples/screenshots/hitl-approval-header.png)
+[![HITL approval — header](docs/screenshots/hitl-approval-header.png)](docs/screenshots/hitl-approval-header.png)
 
-[![HITL approval — prompt UI](examples/screenshots/hitl-approval-prompt-ui.png)](examples/screenshots/hitl-approval-prompt-ui.png)
+[![HITL approval — prompt UI](docs/screenshots/hitl-approval-prompt-ui.png)](docs/screenshots/hitl-approval-prompt-ui.png)
 
-[![HITL approval — step card](examples/screenshots/hitl-approval-step-card.png)](examples/screenshots/hitl-approval-step-card.png)
+[![HITL approval — step card](docs/screenshots/hitl-approval-step-card.png)](docs/screenshots/hitl-approval-step-card.png)
 
 ### Dashboard & Metrics
 
-[![Dashboard metrics with Sankey diagram](examples/screenshots/dashboard-metrics-sankey.png)](examples/screenshots/dashboard-metrics-sankey.png)
+[![Dashboard metrics with Sankey diagram](docs/screenshots/dashboard-metrics-sankey.png)](docs/screenshots/dashboard-metrics-sankey.png)
 
-[![Cost breakdown panel](examples/screenshots/cost-breakdown-panel.png)](examples/screenshots/cost-breakdown-panel.png)
+[![Cost breakdown panel](docs/screenshots/cost-breakdown-panel.png)](docs/screenshots/cost-breakdown-panel.png)
 
-[![History — verdicts & activity](examples/screenshots/history-verdicts-activity.png)](examples/screenshots/history-verdicts-activity.png)
+[![History — verdicts & activity](docs/screenshots/history-verdicts-activity.png)](docs/screenshots/history-verdicts-activity.png)
 
 ### Notifications
 
-[![Slack notification with Kibana link](examples/screenshots/slack-notification-kibana.png)](examples/screenshots/slack-notification-kibana.png)
+[![Slack notification with Kibana link](docs/screenshots/slack-notification-kibana.png)](docs/screenshots/slack-notification-kibana.png)
 
 ## License
 
