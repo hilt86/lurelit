@@ -73,7 +73,9 @@ export async function validateCredentials(kibanaUrl: string, username: string, p
     if (res.ok) return { ok: true, message: 'Authenticated' };
     if (res.status === 401) return { ok: false, message: 'Invalid username or password' };
     return { ok: false, message: `Kibana returned ${res.status}` };
-  } catch (err) {
-    return { ok: false, message: err instanceof Error ? err.message : 'Connection failed' };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Connection failed';
+    const cause = err instanceof Error && err.cause ? ` — ${err.cause}` : '';
+    return { ok: false, message: `${msg}${cause}. Check that the Kibana URL (${kibanaUrl}) is reachable from this container.` };
   }
 }
