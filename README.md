@@ -53,12 +53,42 @@ docker compose up
 # Admin key shown in container logs: docker compose logs lurelit
 ```
 
+The default `docker-compose.yml` uses the setup wizard flow:
+
+```yaml
+version: '3.8'
+services:
+  lurelit:
+    build: .
+    ports:
+      - "5001:5001"
+    environment:
+      - CONFIG_SECRET=change-me-to-a-random-string
+      # Uncomment and set these to skip the setup wizard:
+      # - KIBANA_URL=https://your-kibana-url
+      # - WORKFLOW_ID=your-workflow-id
+    volumes:
+      - lurelit-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  lurelit-data:
+```
+
+Configuration is saved to the `data/` directory inside the container. The `lurelit-data` Docker volume persists this directory across container rebuilds — running `docker compose down && docker compose up --build` preserves your setup config.
+
 ### With Docker + env vars (skip setup wizard)
 
-```bash
-docker compose up -e KIBANA_URL=https://your-kibana:5601 -e WORKFLOW_ID=your-workflow-id -e CONFIG_SECRET=your-secret
-# Goes straight to login, no setup wizard needed
+To skip the wizard entirely, uncomment and set `KIBANA_URL` + `WORKFLOW_ID` in `docker-compose.yml`:
+
+```yaml
+    environment:
+      - CONFIG_SECRET=change-me-to-a-random-string
+      - KIBANA_URL=https://your-kibana:5601
+      - WORKFLOW_ID=your-workflow-id
 ```
+
+When both are set, the app goes straight to the login page — no setup wizard needed. Ideal for pre-configured deployments and CI/CD.
 
 Both methods run on port **5001**. On first launch (without env vars), the setup wizard guides you through connecting to Kibana and configuring your workflow.
 
@@ -106,13 +136,22 @@ Open [http://localhost:5001](http://localhost:5001) and log in with your Kibana 
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `KIBANA_URL` | Yes | Full URL to your Kibana instance (no trailing slash) |
-| `WORKFLOW_ID` | Yes | Auto-generated workflow ID from Kibana (see docs) |
-| `CONFIG_SECRET` | No | Encryption secret for stored config (AES-256-GCM) |
+| `CONFIG_SECRET` | Recommended | Encryption secret for stored config (AES-256-GCM). Must remain consistent across restarts — if changed, previously saved config becomes unreadable. |
+| `KIBANA_URL` | No | Full URL to your Kibana instance (no trailing slash). Only needed to skip the setup wizard. |
+| `WORKFLOW_ID` | No | Auto-generated workflow ID from Kibana (see docs). Only needed to skip the setup wizard. |
+
+- **`CONFIG_SECRET`** — Set to a random string. Used to encrypt the config file and session cookies. Must stay the same across container restarts; if you change it, you'll need to re-run the setup wizard.
+- **`KIBANA_URL` + `WORKFLOW_ID`** — Optional. When both are set, they override any file-based config and skip the setup wizard entirely.
+
+### Config Persistence
+
+Configuration is encrypted and saved to `data/.smish-config.enc`. In Docker, the `lurelit-data` volume mounts at `/app/data`, ensuring config survives `docker compose down && docker compose up --build`. Do not delete the `data/` directory unless you intend to reset configuration.
+
+If the primary `data/` path isn't writable (e.g. permission issues), the app falls back to `/tmp` for temporary storage.
 
 ### UI-Based Setup
 
-If env vars aren't set, configure via the Settings modal in the navigation bar. Settings are encrypted and persisted to `.smish-config.enc`.
+If env vars aren't set, configure via the setup wizard on first launch, or the Settings modal in the navigation bar. Settings are encrypted and persisted to `data/.smish-config.enc`.
 
 ## Securing with HTTPS
 

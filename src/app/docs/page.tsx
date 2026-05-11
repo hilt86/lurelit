@@ -236,29 +236,53 @@ docker compose up
               The container uses a multi-stage build with <InlineCode>node:22-alpine</InlineCode> and runs as a non-root user. No Node.js installation required on the host.
             </Paragraph>
 
-            <SubHead>With Docker + Env Vars (Skip Setup Wizard)</SubHead>
-            <CodeBlock>{`docker compose up -e KIBANA_URL=https://your-kibana:5601 -e WORKFLOW_ID=your-workflow-id -e CONFIG_SECRET=your-secret
-# Goes straight to login, no setup wizard needed`}</CodeBlock>
-            <Paragraph>
-              When <InlineCode>KIBANA_URL</InlineCode> and <InlineCode>WORKFLOW_ID</InlineCode> are set, the app bypasses the setup wizard entirely and goes straight to the login page. Ideal for pre-configured deployments and CI/CD.
-            </Paragraph>
-
-            <SubHead>Environment Variables</SubHead>
-            <Paragraph>
-              Set these in your <InlineCode>docker-compose.yml</InlineCode>, <InlineCode>.env.local</InlineCode> file, or pass via <InlineCode>-e</InlineCode> flags:
-            </Paragraph>
-            <CodeBlock>{`services:
+            <SubHead>Default docker-compose.yml</SubHead>
+            <CodeBlock>{`version: '3.8'
+services:
   lurelit:
     build: .
     ports:
       - "5001:5001"
     environment:
-      - KIBANA_URL=http://host.docker.internal:5601
-      - WORKFLOW_ID=your-workflow-id-here
-      - CONFIG_SECRET=change-me-to-a-random-string`}</CodeBlock>
+      - CONFIG_SECRET=change-me-to-a-random-string
+      # Uncomment and set these to skip the setup wizard:
+      # - KIBANA_URL=https://your-kibana-url
+      # - WORKFLOW_ID=your-workflow-id
+    volumes:
+      - lurelit-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  lurelit-data:`}</CodeBlock>
+            <Paragraph>
+              The <InlineCode>lurelit-data</InlineCode> Docker volume mounts at <InlineCode>/app/data</InlineCode> and persists your encrypted configuration file (<InlineCode>data/.smish-config.enc</InlineCode>) across container rebuilds. Running <InlineCode>docker compose down && docker compose up --build</InlineCode> preserves your setup config.
+            </Paragraph>
+
+            <AlertBox type="warning">
+              Do not delete the <InlineCode>data/</InlineCode> directory or remove the <InlineCode>lurelit-data</InlineCode> volume unless you intend to reset all configuration. If the volume is removed, you&apos;ll need to re-run the setup wizard.
+            </AlertBox>
+
+            <SubHead>With Docker + Env Vars (Skip Setup Wizard)</SubHead>
+            <Paragraph>
+              To skip the wizard entirely, uncomment and set <InlineCode>KIBANA_URL</InlineCode> + <InlineCode>WORKFLOW_ID</InlineCode> in your <InlineCode>docker-compose.yml</InlineCode>:
+            </Paragraph>
+            <CodeBlock>{`    environment:
+      - CONFIG_SECRET=change-me-to-a-random-string
+      - KIBANA_URL=https://your-kibana:5601
+      - WORKFLOW_ID=your-workflow-id`}</CodeBlock>
+            <Paragraph>
+              When both <InlineCode>KIBANA_URL</InlineCode> and <InlineCode>WORKFLOW_ID</InlineCode> are set, the app bypasses the setup wizard entirely and goes straight to the login page. These env vars override any file-based config. Ideal for pre-configured deployments and CI/CD.
+            </Paragraph>
+
+            <SubHead>Environment Variables</SubHead>
+            <BulletList items={[
+              <><InlineCode>CONFIG_SECRET</InlineCode> — Encryption key for stored config and session cookies (AES-256-GCM). <strong style={{ color: 'var(--text)' }}>Must remain consistent across restarts</strong> — if changed, previously saved config becomes unreadable and you&apos;ll need to re-run setup.</>,
+              <><InlineCode>KIBANA_URL</InlineCode> — (Optional) Full URL to your Kibana instance. Only needed to skip the setup wizard.</>,
+              <><InlineCode>WORKFLOW_ID</InlineCode> — (Optional) Auto-generated workflow ID from Kibana. Only needed to skip the setup wizard.</>,
+            ]} />
 
             <AlertBox type="info">
-              Use <InlineCode>host.docker.internal</InlineCode> to reach a Kibana instance running on your host machine. For remote Kibana deployments, use the full URL.
+              Use <InlineCode>host.docker.internal</InlineCode> in <InlineCode>KIBANA_URL</InlineCode> to reach a Kibana instance running on your host machine. For remote Kibana deployments, use the full URL.
             </AlertBox>
 
             <SubHead>Admin Key</SubHead>
@@ -406,19 +430,31 @@ services:
           <SectionCard id="configuration" title="Configuration">
             <SubHead>Environment Variables</SubHead>
             <Paragraph>
-              Set these in your environment or <InlineCode>.env.local</InlineCode> file:
+              Set these in your environment, <InlineCode>.env.local</InlineCode> file, or <InlineCode>docker-compose.yml</InlineCode>:
             </Paragraph>
-            <CodeBlock>{`# Required
-KIBANA_URL=https://your-kibana.elastic.cloud
-WORKFLOW_ID=your-workflow-id-from-kibana
+            <CodeBlock>{`# Recommended — encryption key for stored config (must stay consistent)
+CONFIG_SECRET=a-random-secret-for-encryption
 
-# Optional (defaults to insecure dev key if omitted)
-CONFIG_SECRET=a-random-secret-for-encryption`}</CodeBlock>
+# Optional — set both to skip the setup wizard entirely
+KIBANA_URL=https://your-kibana.elastic.cloud
+WORKFLOW_ID=your-workflow-id-from-kibana`}</CodeBlock>
             <BulletList items={[
-              <><InlineCode>KIBANA_URL</InlineCode> — Full URL to your Kibana instance (no trailing slash). Append <InlineCode>/s/space-name</InlineCode> if using a non-default space.</>,
-              <><InlineCode>WORKFLOW_ID</InlineCode> — The auto-generated ID of your imported workflow (see <a href="#find-workflow-id" style={{ color: 'var(--teal-bright)' }}>Finding Your Workflow ID</a>)</>,
-              <><InlineCode>CONFIG_SECRET</InlineCode> — Secret key used to encrypt stored config and session cookies (AES-256-GCM)</>,
+              <><InlineCode>CONFIG_SECRET</InlineCode> — Secret key used to encrypt stored config and session cookies (AES-256-GCM). <strong style={{ color: 'var(--text)' }}>Must remain consistent across restarts.</strong> If changed, previously saved config becomes unreadable and you&apos;ll need to re-run the setup wizard.</>,
+              <><InlineCode>KIBANA_URL</InlineCode> — (Optional) Full URL to your Kibana instance (no trailing slash). Append <InlineCode>/s/space-name</InlineCode> if using a non-default space. When set with <InlineCode>WORKFLOW_ID</InlineCode>, skips the setup wizard.</>,
+              <><InlineCode>WORKFLOW_ID</InlineCode> — (Optional) The auto-generated ID of your imported workflow (see <a href="#find-workflow-id" style={{ color: 'var(--teal-bright)' }}>Finding Your Workflow ID</a>). When set with <InlineCode>KIBANA_URL</InlineCode>, skips the setup wizard.</>,
             ]} />
+
+            <AlertBox type="warning">
+              If you change <InlineCode>CONFIG_SECRET</InlineCode> after initial setup, the encrypted config file at <InlineCode>data/.smish-config.enc</InlineCode> becomes unreadable. You&apos;ll see &quot;Kibana URL not configured&quot; errors until you re-run the setup wizard or restore the original secret.
+            </AlertBox>
+
+            <SubHead>Config Storage</SubHead>
+            <Paragraph>
+              Configuration is encrypted (AES-256-GCM) and saved to <InlineCode>data/.smish-config.enc</InlineCode>. In Docker, the <InlineCode>lurelit-data</InlineCode> volume persists this directory at <InlineCode>/app/data</InlineCode>, so config survives container rebuilds. Do not delete the <InlineCode>data/</InlineCode> directory unless you intend to reset all configuration.
+            </Paragraph>
+            <Paragraph>
+              If the primary <InlineCode>data/</InlineCode> path isn&apos;t writable (e.g. permission issues in certain environments), the app gracefully falls back to <InlineCode>/tmp</InlineCode> for temporary storage.
+            </Paragraph>
 
             <SubHead>Settings Modal</SubHead>
             <Paragraph>
@@ -433,7 +469,7 @@ CONFIG_SECRET=a-random-secret-for-encryption`}</CodeBlock>
 
             <SubHead>UI-Based Setup</SubHead>
             <Paragraph>
-              If environment variables are not set, you can configure Lurelit through the Settings modal in the navigation bar. Click the &quot;Setup&quot; / &quot;Configured&quot; button to open it. The settings are encrypted and persisted to <InlineCode>.smish-config.enc</InlineCode> on disk.
+              If environment variables are not set, you can configure Lurelit through the setup wizard on first launch, or the Settings modal in the navigation bar. Settings are encrypted and persisted to <InlineCode>data/.smish-config.enc</InlineCode> on disk.
             </Paragraph>
 
             <SubHead>Authentication</SubHead>
@@ -1081,6 +1117,13 @@ HTTP 404  →  Workflow ID mismatch or wrong Kibana space
 HTTP 400  →  Workflow disabled, or invalid input format
 HTTP 500  →  Workflow execution error (check Kibana logs)
 TIMEOUT   →  Analysis step exceeded timeout (default 120s for AI, 500s for hunt)`}</CodeBlock>
+
+            <SubHead>Docker &amp; Config Persistence</SubHead>
+            <BulletList items={[
+              <><strong style={{ color: 'var(--text)' }}>&quot;Kibana URL not configured&quot; after rebuild</strong> — Ensure the <InlineCode>lurelit-data</InlineCode> volume is mounted at <InlineCode>/app/data</InlineCode> in your <InlineCode>docker-compose.yml</InlineCode>. Without the volume, config is lost on every container rebuild. Verify with: <InlineCode>docker volume ls | grep lurelit</InlineCode></>,
+              <><strong style={{ color: 'var(--text)' }}>Config unreadable after changing CONFIG_SECRET</strong> — The <InlineCode>CONFIG_SECRET</InlineCode> env var must remain consistent across restarts. If changed, the encrypted config file (<InlineCode>data/.smish-config.enc</InlineCode>) can&apos;t be decrypted. Fix: restore the original secret, or delete the volume and re-run setup.</>,
+              <><strong style={{ color: 'var(--text)' }}>Permission denied writing to data/</strong> — The container runs as non-root user <InlineCode>nextjs</InlineCode> (UID 1001). If using a bind mount instead of a Docker volume, ensure the host directory is writable by UID 1001. The app falls back to <InlineCode>/tmp</InlineCode> if the primary path fails.</>,
+            ]} />
           </SectionCard>
 
             </div>{/* end content column */}
