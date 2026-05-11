@@ -67,6 +67,8 @@ export async function validateCredentials(kibanaUrl: string, username: string, p
     const res = await fetch(`${kibanaUrl}/api/status`, {
       headers: {
         'kbn-xsrf': 'true',
+        'x-elastic-internal-origin': 'kibana',
+        'elastic-api-version': '1',
         'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
       },
     });
