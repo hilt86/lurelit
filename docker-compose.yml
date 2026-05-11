@@ -9,4 +9,9 @@ services:
       # Uncomment and set these to skip the setup wizard:
       # - KIBANA_URL=https://your-kibana-url
       # - WORKFLOW_ID=your-workflow-id
+    volumes:
+      - lurelit-data:/app/data
     restart: unless-stopped
+
+volumes:
+  lurelit-data:

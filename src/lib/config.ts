@@ -8,7 +8,7 @@ export interface GlobalConfig {
   huntEnabled: boolean;
 }
 
-const CONFIG_PATH = join(process.cwd(), '.smish-config.enc');
+const CONFIG_PATH = join(process.cwd(), 'data', '.smish-config.enc');
 const SALT = 'smish-analyzer-v1';
 
 function getEncryptionKey(): Buffer {

@@ -38,6 +38,7 @@ yarn-error.log*
 
 # encrypted config
 .smish-config.enc
+data/.smish-config.enc
 .lurelit-admin-key
 .avatars/
 

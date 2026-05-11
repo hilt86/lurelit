@@ -27,7 +27,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 RUN mkdir -p /app/data && chown nextjs:nodejs /app/data && \
     touch /app/.lurelit-admin-key && chown nextjs:nodejs /app/.lurelit-admin-key && \
-    touch /app/.smish-config.enc && chown nextjs:nodejs /app/.smish-config.enc
+    touch /app/data/.smish-config.enc && chown nextjs:nodejs /app/data/.smish-config.enc
 
 USER nextjs
 EXPOSE 5001
