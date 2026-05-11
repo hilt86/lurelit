@@ -51,3 +51,6 @@ next-env.d.ts
 # Workflow fix prompts (local dev notes)
 docs/workflow-fix-*.md
 docs/workflow-hunt-input.md
+
+CLAUDE.md
+AGENTS.md
