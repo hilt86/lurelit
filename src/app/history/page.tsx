@@ -62,6 +62,7 @@ function HistoryContent() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>(initialFilter);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [avatars, setAvatars] = useState<Record<string, string | null>>({});
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -93,6 +94,22 @@ function HistoryContent() {
   };
 
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  useEffect(() => {
+    const users = [...new Set(executions.map(e => e.executedBy).filter(Boolean))] as string[];
+    users.forEach(async (username) => {
+      if (avatars[username] !== undefined) return;
+      try {
+        const res = await fetch(`/api/avatar/${username}`);
+        if (res.ok) {
+          const data = await res.json();
+          setAvatars(prev => ({ ...prev, [username]: data.avatar || null }));
+        }
+      } catch {
+        setAvatars(prev => ({ ...prev, [username]: null }));
+      }
+    });
+  }, [executions]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = filter === 'all' ? executions
     : filter === 'running' ? executions.filter(e => e.status === 'running' || e.status === 'pending')
@@ -201,7 +218,7 @@ function HistoryContent() {
                     key={exec.id}
                     href={`/results/${exec.id}`}
                     style={{
-                      display: 'grid', gridTemplateColumns: '32px 1fr 120px 120px 80px', gap: 0, padding: '14px 20px',
+                      display: 'grid', gridTemplateColumns: '32px 28px 1fr 120px 120px 80px', gap: 0, padding: '14px 20px',
                       borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none',
                       cursor: 'pointer', transition: 'all 0.2s', alignItems: 'center', textDecoration: 'none',
                       color: 'inherit',
@@ -214,6 +231,21 @@ function HistoryContent() {
                       background: st.color,
                       boxShadow: exec.status === 'running' ? `0 0 8px ${st.color}` : `0 0 6px ${st.color}`,
                     }} />
+
+                    {exec.executedBy ? (
+                      <div style={{
+                        width: 24, height: 24, borderRadius: '50%', overflow: 'hidden',
+                        background: 'var(--bg-surface)', border: '1px solid var(--border)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 10, color: 'var(--text-faint)', fontWeight: 600,
+                      }}>
+                        {avatars[exec.executedBy] ? (
+                          <img src={avatars[exec.executedBy]!} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          exec.executedBy.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                    ) : <div />}
 
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
