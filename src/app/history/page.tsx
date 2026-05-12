@@ -63,6 +63,7 @@ function HistoryContent() {
   const [filter, setFilter] = useState<Filter>(initialFilter);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [avatars, setAvatars] = useState<Record<string, string | null>>({});
+  const [threats, setThreats] = useState<Record<string, boolean>>({});
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -228,8 +229,12 @@ function HistoryContent() {
                   >
                     <div style={{
                       width: 8, height: 8, borderRadius: '50%',
-                      background: st.color,
-                      boxShadow: exec.status === 'running' ? `0 0 8px ${st.color}` : `0 0 6px ${st.color}`,
+                      background: exec.status === 'completed' && threats[exec.id] !== undefined
+                        ? (threats[exec.id] ? 'var(--pink)' : 'var(--teal)')
+                        : st.color,
+                      boxShadow: exec.status === 'running' ? `0 0 8px ${st.color}` : exec.status === 'completed' && threats[exec.id] !== undefined
+                        ? `0 0 6px ${threats[exec.id] ? 'var(--pink)' : 'var(--teal)'}`
+                        : `0 0 6px ${st.color}`,
                     }} />
 
                     {exec.executedBy ? (
@@ -263,7 +268,7 @@ function HistoryContent() {
                             color: 'var(--yellow)', background: 'rgba(254,197,20,0.08)', border: '1px solid rgba(254,197,20,0.3)',
                           }}>Test</span>
                         )}
-                        <VerdictBadge executionId={exec.id} status={exec.status} />
+                        <VerdictBadge executionId={exec.id} status={exec.status} onVerdictLoaded={(id, isThreat) => setThreats(prev => ({ ...prev, [id]: isThreat }))} />
                       </div>
                       <p className="mono" style={{ fontSize: 10, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '0.08em', marginTop: 2 }}>
                         {exec.id}
