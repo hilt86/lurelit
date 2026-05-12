@@ -20,9 +20,10 @@ export async function register() {
       } else {
         const fs = require('fs');
         const path = require('path');
+        const cwd = String(process.env.PWD || process.env.CWD || '/app');
 
-        const primaryKeyFile = path.join(process.cwd(), '.lurelit-admin-key');
-        const fallbackKeyFile = path.join('/tmp', '.lurelit-admin-key');
+        const primaryKeyFile = path.join(cwd, '.lurelit-admin-key');
+        const fallbackKeyFile = '/tmp/.lurelit-admin-key';
 
         for (const keyFile of [primaryKeyFile, fallbackKeyFile]) {
           try {
@@ -47,7 +48,7 @@ export async function register() {
             }
           }
           if (!written) {
-            console.warn('  ⚠ Could not persist admin key to disk. It will be regenerated on restart.');
+            console.warn('  [Lurelit] Could not persist admin key to disk. It will be regenerated on restart.');
           }
         }
       }
@@ -59,7 +60,7 @@ export async function register() {
     console.log('  │  Use this to access /setup                        │');
     console.log('  └───────────────────────────────────────────────────┘');
     console.log('');
-  } catch {
-    // Not in Node.js runtime, skip
+  } catch (e) {
+    console.warn('[Lurelit] Instrumentation error:', e);
   }
 }
