@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import AvatarEditor from './AvatarEditor';
 import SettingsModal from './SettingsModal';
 import LurelitMascot from './LurelitMascot';
+import ConnectionStatus from './ConnectionStatus';
 
 function LurelitWordmark({ size = 13 }: { size?: number }) {
   return (
@@ -141,6 +142,7 @@ export default function Nav() {
 
       <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} onSaved={checkStatus} />
       <AvatarEditor open={editorOpen} imageUrl={editorImage} onSave={handleAvatarSave} onClose={() => setEditorOpen(false)} />
+      <ConnectionStatus />
     </>
   );
 }
