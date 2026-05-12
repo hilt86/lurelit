@@ -313,15 +313,28 @@ volumes:
 
             <SubHead>One-Click Deploy</SubHead>
             <Paragraph>
-              Use the Deploy button in the <a href="https://github.com/jamesspi/lurelit" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)' }}>README</a> to deploy with pre-configured environment variables and Upstash Redis provisioned automatically.
+              Use the Deploy button in the <a href="https://github.com/jamesspi/lurelit" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)' }}>README</a> to deploy with pre-configured environment variables and Upstash Redis provisioned automatically. During the flow, Vercel will prompt you to create an Upstash Redis database — choose any region close to your Elastic deployment for best latency.
             </Paragraph>
 
             <SubHead>Manual Setup</SubHead>
             <NumberedList items={[
               <>Import the Lurelit repository in Vercel (Framework: Next.js, auto-detected)</>,
               <>Add <strong style={{ color: 'var(--text)' }}>Upstash Redis</strong> from the Vercel Marketplace — this auto-sets <InlineCode>UPSTASH_REDIS_REST_URL</InlineCode> and <InlineCode>UPSTASH_REDIS_REST_TOKEN</InlineCode></>,
-              <>Set environment variables: <InlineCode>CONFIG_SECRET</InlineCode> (required — encrypts config), <InlineCode>SETUP_SECRET</InlineCode> (optional — fixed admin key for setup wizard)</>,
+              <>Set environment variables: <InlineCode>CONFIG_SECRET</InlineCode> (required — encrypts config), <InlineCode>SETUP_SECRET</InlineCode> (optional — a fixed admin key for the setup wizard)</>,
               <>Deploy — visit your Vercel URL and run the setup wizard as normal</>,
+            ]} />
+
+            <SubHead>Adding Upstash Redis (Detailed)</SubHead>
+            <Paragraph>
+              If Upstash Redis was not provisioned during the one-click deploy, or you are setting up manually:
+            </Paragraph>
+            <NumberedList items={[
+              <>In your Vercel project dashboard, go to the <strong style={{ color: 'var(--text)' }}>Storage</strong> tab</>,
+              <>Click <strong style={{ color: 'var(--text)' }}>Create Database</strong> and select <strong style={{ color: 'var(--text)' }}>Upstash Redis (KV)</strong></>,
+              <>Choose a <strong style={{ color: 'var(--text)' }}>name</strong> (e.g., <InlineCode>lurelit-store</InlineCode>) and a <strong style={{ color: 'var(--text)' }}>region</strong> — pick one geographically close to your Elastic cluster for lowest latency</>,
+              <>Select the <strong style={{ color: 'var(--text)' }}>Free</strong> plan (sufficient for Lurelit&apos;s usage) or Pay as You Go for higher limits</>,
+              <>Click <strong style={{ color: 'var(--text)' }}>Create</strong> — Vercel auto-adds <InlineCode>UPSTASH_REDIS_REST_URL</InlineCode> and <InlineCode>UPSTASH_REDIS_REST_TOKEN</InlineCode> to your project&apos;s environment variables</>,
+              <>Redeploy the project (Settings → Deployments → Redeploy) to pick up the new env vars</>,
             ]} />
 
             <SubHead>How It Works</SubHead>
