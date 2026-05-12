@@ -342,6 +342,20 @@ volumes:
               When <InlineCode>UPSTASH_REDIS_REST_URL</InlineCode> is detected, Lurelit automatically uses Redis for all persistence (config, admin key, avatars) instead of the filesystem. The setup wizard, login, and all features work identically to self-hosted deployments.
             </Paragraph>
 
+            <SubHead>Finding the Admin Key on Vercel</SubHead>
+            <Paragraph>
+              If you set <InlineCode>SETUP_SECRET</InlineCode> during deployment, use that value as the admin key. If you left it blank, Lurelit generates one automatically on first request. To find it:
+            </Paragraph>
+            <NumberedList items={[
+              <>Go to your Vercel project dashboard → <strong style={{ color: 'var(--text)' }}>Logs</strong> tab</>,
+              <>Visit your deployed URL once to trigger the first serverless function invocation</>,
+              <>Look for the <InlineCode>Lurelit setup key: ...</InlineCode> message in the function logs</>,
+              <>Copy the key and paste it into the setup wizard</>,
+            ]} />
+            <AlertBox type="tip">
+              For simplicity, set <InlineCode>SETUP_SECRET</InlineCode> in your Vercel environment variables (Settings → Environment Variables) to a value you choose. This avoids needing to check the logs.
+            </AlertBox>
+
             <AlertBox type="tip">
               You can also set <InlineCode>KIBANA_URL</InlineCode> and <InlineCode>WORKFLOW_ID</InlineCode> as Vercel env vars to skip the setup wizard entirely — the app will go straight to the login page.
             </AlertBox>
