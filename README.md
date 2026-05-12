@@ -5,6 +5,8 @@
 <p align="center">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
   &nbsp;
+  <a href="https://lurelit.ai/demo"><img src="https://img.shields.io/badge/Try-Live_Demo-ff4e98?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik04IDV2MTRsMTEtN3oiLz48L3N2Zz4=&logoColor=white" alt="Try Live Demo" /></a>
+  &nbsp;
   <a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjamesspi%2Flurelit&env=CONFIG_SECRET,SETUP_SECRET&envDescription=CONFIG_SECRET%20encrypts%20stored%20config.%20SETUP_SECRET%20is%20your%20admin%20key%20for%20the%20setup%20wizard.&project-name=lurelit&repository-name=lurelit&stores=%5B%7B%22type%22%3A%22kv%22%7D%5D"><img src="https://img.shields.io/badge/Deploy-Vercel-black?logo=vercel&logoColor=white" alt="Deploy with Vercel" /></a>
 </p>
 
