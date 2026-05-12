@@ -376,6 +376,7 @@ export default function ResultsPage({ params }: { params: Promise<{ executionId:
                   data.status === 'cancelled' ? 'idle' :
                   data.status === 'failed' ? 'threat' :
                   data.status === 'waiting' ? 'watching' :
+                  isTerminal && data?.output && (data.output.classification_is_phishing === 'true' || data.output.classification_is_phishing === true) ? 'threat' :
                   isTerminal ? 'clean' :
                   'analyzing'
                 }
