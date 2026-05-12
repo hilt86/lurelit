@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export default function VerdictBadge({ executionId, status, onVerdictLoaded }: { executionId: string; status: string; onVerdictLoaded?: (id: string, isThreat: boolean) => void }) {
   const [verdict, setVerdict] = useState<{ isThreat: boolean; type: string } | null>(null);
+  const callbackRef = useRef(onVerdictLoaded);
+  callbackRef.current = onVerdictLoaded;
 
   useEffect(() => {
     if (status !== 'completed') return;
@@ -17,12 +19,12 @@ export default function VerdictBadge({ executionId, status, onVerdictLoaded }: {
         if (!o || !('classification_is_phishing' in o)) return;
         const isThreat = o.classification_is_phishing === 'true' || o.classification_is_phishing === true;
         setVerdict({ isThreat, type: (o.classification_type as string) ?? '' });
-        onVerdictLoaded?.(executionId, isThreat);
+        callbackRef.current?.(executionId, isThreat);
       })
       .catch(() => {});
 
     return () => { cancelled = true; };
-  }, [executionId, status, onVerdictLoaded]);
+  }, [executionId, status]);
 
   if (!verdict) return null;
 
