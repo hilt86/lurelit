@@ -699,6 +699,9 @@ export default function SetupPage() {
                   placeholder="https://your-kibana.elastic.co"
                   autoFocus
                 />
+                <p style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 6, lineHeight: 1.5 }}>
+                  Running in Docker? Use <span className="mono" style={{ color: 'var(--teal)', cursor: 'pointer' }} onClick={() => setKibanaUrl('http://host.docker.internal:5601')}>host.docker.internal:5601</span> for local Kibana.
+                </p>
               </div>
               <div>
                 <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Username</label>
