@@ -2,39 +2,53 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
 
   try {
-    const fs = require('fs');
     const crypto = require('crypto');
-    const path = require('path');
 
-    const primaryKeyFile = path.join(process.cwd(), '.lurelit-admin-key');
-    const fallbackKeyFile = path.join('/tmp', '.lurelit-admin-key');
     let key = process.env.SETUP_SECRET || '';
 
     if (!key) {
-      for (const keyFile of [primaryKeyFile, fallbackKeyFile]) {
-        try {
-          if (fs.existsSync(keyFile)) {
-            key = fs.readFileSync(keyFile, 'utf8').trim();
-            break;
-          }
-        } catch {
-          // Can't read this path, try next
+      if (process.env.UPSTASH_REDIS_REST_URL) {
+        const { getStorage } = await import('./lib/storage');
+        const storage = getStorage();
+        const stored = await storage.get('admin-key');
+        if (stored) {
+          key = stored;
+        } else {
+          key = crypto.randomBytes(16).toString('hex');
+          await storage.set('admin-key', key);
         }
-      }
-      if (!key) {
-        key = crypto.randomBytes(16).toString('hex');
-        let written = false;
+      } else {
+        const fs = require('fs');
+        const path = require('path');
+
+        const primaryKeyFile = path.join(process.cwd(), '.lurelit-admin-key');
+        const fallbackKeyFile = path.join('/tmp', '.lurelit-admin-key');
+
         for (const keyFile of [primaryKeyFile, fallbackKeyFile]) {
           try {
-            fs.writeFileSync(keyFile, key, 'utf8');
-            written = true;
-            break;
+            if (fs.existsSync(keyFile)) {
+              key = fs.readFileSync(keyFile, 'utf8').trim();
+              break;
+            }
           } catch {
-            // Can't write to this path, try next
+            // Can't read this path, try next
           }
         }
-        if (!written) {
-          console.warn('  ⚠ Could not persist admin key to disk. It will be regenerated on restart.');
+        if (!key) {
+          key = crypto.randomBytes(16).toString('hex');
+          let written = false;
+          for (const keyFile of [primaryKeyFile, fallbackKeyFile]) {
+            try {
+              fs.writeFileSync(keyFile, key, 'utf8');
+              written = true;
+              break;
+            } catch {
+              // Can't write to this path, try next
+            }
+          }
+          if (!written) {
+            console.warn('  ⚠ Could not persist admin key to disk. It will be regenerated on restart.');
+          }
         }
       }
     }

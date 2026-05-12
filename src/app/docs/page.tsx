@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 const sections = [
   { id: 'getting-started', label: 'Getting Started' },
   { id: 'docker', label: 'Installation & Deployment' },
+  { id: 'vercel', label: 'Deploy to Vercel' },
   { id: 'securing-https', label: 'Securing with HTTPS' },
   { id: 'setup-wizard', label: 'First-Time Setup' },
   { id: 'configuration', label: 'Configuration' },
@@ -302,6 +303,35 @@ volumes:
               <><strong style={{ color: 'var(--text)' }}>User:</strong> Runs as non-root <InlineCode>nextjs</InlineCode> user (UID 1001)</>,
               <><strong style={{ color: 'var(--text)' }}>Restart policy:</strong> <InlineCode>unless-stopped</InlineCode></>,
             ]} />
+          </SectionCard>
+
+          {/* Deploy to Vercel */}
+          <SectionCard id="vercel" title="Deploy to Vercel">
+            <Paragraph>
+              Lurelit can be deployed to <a href="https://vercel.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)' }}>Vercel</a> as a serverless Next.js application. Since Vercel&apos;s filesystem is ephemeral, an <a href="https://vercel.com/marketplace" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)' }}>Upstash Redis</a> store is used to persist config, admin keys, and avatars.
+            </Paragraph>
+
+            <SubHead>One-Click Deploy</SubHead>
+            <Paragraph>
+              Use the Deploy button in the <a href="https://github.com/jamesspi/lurelit" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)' }}>README</a> to deploy with pre-configured environment variables and Upstash Redis provisioned automatically.
+            </Paragraph>
+
+            <SubHead>Manual Setup</SubHead>
+            <NumberedList items={[
+              <>Import the Lurelit repository in Vercel (Framework: Next.js, auto-detected)</>,
+              <>Add <strong style={{ color: 'var(--text)' }}>Upstash Redis</strong> from the Vercel Marketplace — this auto-sets <InlineCode>UPSTASH_REDIS_REST_URL</InlineCode> and <InlineCode>UPSTASH_REDIS_REST_TOKEN</InlineCode></>,
+              <>Set environment variables: <InlineCode>CONFIG_SECRET</InlineCode> (required — encrypts config), <InlineCode>SETUP_SECRET</InlineCode> (optional — fixed admin key for setup wizard)</>,
+              <>Deploy — visit your Vercel URL and run the setup wizard as normal</>,
+            ]} />
+
+            <SubHead>How It Works</SubHead>
+            <Paragraph>
+              When <InlineCode>UPSTASH_REDIS_REST_URL</InlineCode> is detected, Lurelit automatically uses Redis for all persistence (config, admin key, avatars) instead of the filesystem. The setup wizard, login, and all features work identically to self-hosted deployments.
+            </Paragraph>
+
+            <AlertBox type="tip">
+              You can also set <InlineCode>KIBANA_URL</InlineCode> and <InlineCode>WORKFLOW_ID</InlineCode> as Vercel env vars to skip the setup wizard entirely — the app will go straight to the login page.
+            </AlertBox>
           </SectionCard>
 
           {/* Securing with HTTPS */}

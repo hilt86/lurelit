@@ -4,7 +4,7 @@ import { getSession } from '@/lib/session';
 
 export async function GET() {
   const session = await getSession();
-  const config = loadGlobalConfig();
+  const config = await loadGlobalConfig();
   return NextResponse.json({
     configured: config !== null,
     kibanaUrl: config?.kibanaUrl ?? '',
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     if (!kibanaUrl || !workflowId) {
       return NextResponse.json({ error: 'Kibana URL and Workflow ID are required' }, { status: 400 });
     }
-    saveGlobalConfig({ kibanaUrl: kibanaUrl.replace(/\/+$/, ''), workflowId, huntEnabled: huntEnabled ?? true });
+    await saveGlobalConfig({ kibanaUrl: kibanaUrl.replace(/\/+$/, ''), workflowId, huntEnabled: huntEnabled ?? true });
     return NextResponse.json({ success: true });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 });
@@ -30,6 +30,6 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE() {
-  clearGlobalConfig();
+  await clearGlobalConfig();
   return NextResponse.json({ success: true });
 }

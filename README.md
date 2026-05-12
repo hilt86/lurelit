@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+  <a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fjamesspi%2Flurelit&env=CONFIG_SECRET,SETUP_SECRET&envDescription=CONFIG_SECRET%20encrypts%20stored%20config.%20SETUP_SECRET%20is%20your%20admin%20key%20for%20the%20setup%20wizard.&project-name=lurelit&repository-name=lurelit&integration-ids=oac_V3R1GIpkoJorr6fqyiwFXci1"><img src="https://vercel.com/button" alt="Deploy with Vercel" /></a>
 </p>
 
 <p align="center">
@@ -116,6 +117,19 @@ When environment variables (`KIBANA_URL` + `WORKFLOW_ID`) are set, the app goes 
 - Automated provisioning
 
 Open [http://localhost:5001](http://localhost:5001) and log in with your Kibana credentials.
+
+### Deploy to Vercel
+
+Click the Deploy button above, or manually:
+
+1. Import the repository in [Vercel](https://vercel.com/new)
+2. Add **Upstash Redis** from the [Vercel Marketplace](https://vercel.com/marketplace) (this auto-sets `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`)
+3. Set environment variables:
+   - `CONFIG_SECRET` — required, encrypts stored configuration
+   - `SETUP_SECRET` — optional, a fixed admin key for the setup wizard (if omitted, one is generated and stored in Redis)
+4. Deploy — visit the URL and run the setup wizard as normal
+
+On Vercel, config, admin key, and avatars all persist in Upstash Redis instead of the filesystem. The setup wizard works identically to self-hosted deployments.
 
 ## Prerequisites
 

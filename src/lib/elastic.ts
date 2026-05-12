@@ -1,8 +1,8 @@
 import { loadGlobalConfig } from './config';
 import { getSession, getAuthHeader } from './session';
 
-function getConfig() {
-  return loadGlobalConfig() ?? { kibanaUrl: '', workflowId: '' };
+async function getConfig() {
+  return (await loadGlobalConfig()) ?? { kibanaUrl: '', workflowId: '' };
 }
 
 async function authHeaders(): Promise<Record<string, string>> {
@@ -14,18 +14,14 @@ async function authHeaders(): Promise<Record<string, string>> {
   return h;
 }
 
-function url(path: string): string {
-  return `${getConfig().kibanaUrl}${path}`;
-}
-
-export function isConfigured(): boolean {
-  const c = getConfig();
+export async function isConfigured(): Promise<boolean> {
+  const c = await getConfig();
   return Boolean(c.kibanaUrl && c.workflowId);
 }
 
 export async function runWorkflow(inputs: Record<string, unknown>) {
-  const { workflowId } = getConfig();
-  const res = await fetch(url(`/api/workflows/workflow/${workflowId}/run`), {
+  const config = await getConfig();
+  const res = await fetch(`${config.kibanaUrl}/api/workflows/workflow/${config.workflowId}/run`, {
     method: 'POST',
     headers: await authHeaders(),
     body: JSON.stringify({ inputs, metadata: { source: 'smish-analyzer', submitted_at: new Date().toISOString() } }),
@@ -35,22 +31,24 @@ export async function runWorkflow(inputs: Record<string, unknown>) {
 }
 
 export async function getExecution(executionId: string, includeOutput = true) {
+  const config = await getConfig();
   const params = new URLSearchParams();
   if (includeOutput) params.set('includeOutput', 'true');
-  const res = await fetch(url(`/api/workflows/executions/${executionId}?${params}`), { headers: await authHeaders() });
+  const res = await fetch(`${config.kibanaUrl}/api/workflows/executions/${executionId}?${params}`, { headers: await authHeaders() });
   if (!res.ok) throw new Error(`Failed to get execution: ${res.status} ${await res.text()}`);
   return res.json();
 }
 
 export async function getExecutionLogs(executionId: string, size = 100) {
+  const config = await getConfig();
   const params = new URLSearchParams({ size: String(size), sortField: 'timestamp', sortOrder: 'asc' });
-  const res = await fetch(url(`/api/workflows/executions/${executionId}/logs?${params}`), { headers: await authHeaders() });
+  const res = await fetch(`${config.kibanaUrl}/api/workflows/executions/${executionId}/logs?${params}`, { headers: await authHeaders() });
   if (!res.ok) throw new Error(`Failed to get execution logs: ${res.status} ${await res.text()}`);
   return res.json();
 }
 
 export async function testConnection(): Promise<{ ok: boolean; message: string }> {
-  const { kibanaUrl } = getConfig();
+  const { kibanaUrl } = await getConfig();
   if (!kibanaUrl) return { ok: false, message: 'Missing Kibana URL' };
   try {
     const res = await fetch(`${kibanaUrl}/api/status`, { headers: await authHeaders() });

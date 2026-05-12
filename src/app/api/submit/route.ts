@@ -20,14 +20,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing image data' }, { status: 400 });
     }
 
-    if (image === '__demo__' || !isConfigured()) {
+    if (image === '__demo__' || !(await isConfigured())) {
       const executionId = createDemoExecution();
       return NextResponse.json({ executionId });
     }
 
     const mediaType = detectMediaType(image);
     const base64 = image.includes(',') ? image.split(',')[1] : image;
-    const config = loadGlobalConfig();
+    const config = await loadGlobalConfig();
 
     const result = await runWorkflow({
       image_base64: base64,

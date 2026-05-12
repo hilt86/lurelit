@@ -15,7 +15,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    saveGlobalConfig({
+    await saveGlobalConfig({
       kibanaUrl: kibanaUrl.replace(/\/+$/, ''),
       workflowId,
       huntEnabled: true,

@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { getStorage } from '@/lib/storage';
 
-const AVATAR_DIR = join(process.cwd(), '.avatars');
-
-function getAvatarPath(username: string): string {
-  return join(AVATAR_DIR, `${username.toLowerCase().replace(/[^a-z0-9]/g, '_')}.json`);
+function avatarKey(username: string): string {
+  return `avatar:${username.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
 }
 
 export async function GET(
@@ -17,14 +14,13 @@ export async function GET(
   if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
   const { username } = await params;
-  const path = getAvatarPath(username);
-  if (!existsSync(path)) return NextResponse.json({ avatar: null });
+  const storage = getStorage();
+  const data = await storage.get(avatarKey(username));
+  if (!data) return NextResponse.json({ avatar: null });
 
   try {
-    const raw = readFileSync(path, 'utf8');
-    if (!raw) return NextResponse.json({ avatar: null });
-    const data = JSON.parse(raw);
-    return NextResponse.json({ avatar: data.dataUrl ?? null });
+    const parsed = JSON.parse(data);
+    return NextResponse.json({ avatar: parsed.dataUrl ?? null });
   } catch {
     return NextResponse.json({ avatar: null });
   }

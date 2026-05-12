@@ -3,7 +3,7 @@ import { loadGlobalConfig } from '@/lib/config';
 import { getSession, getAuthHeader } from '@/lib/session';
 
 export async function GET(request: NextRequest) {
-  const config = loadGlobalConfig();
+  const config = await loadGlobalConfig();
   const session = await getSession();
 
   if (!config?.kibanaUrl || !config?.workflowId) {

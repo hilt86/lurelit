@@ -1,24 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/session';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { getStorage } from '@/lib/storage';
 
-const AVATAR_DIR = join(process.cwd(), '.avatars');
-
-function getAvatarPath(username: string): string {
-  return join(AVATAR_DIR, `${username.toLowerCase().replace(/[^a-z0-9]/g, '_')}.json`);
+function avatarKey(username: string): string {
+  return `avatar:${username.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
 }
 
 export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  const path = getAvatarPath(session.username);
-  if (!existsSync(path)) return NextResponse.json({ avatar: null });
+  const storage = getStorage();
+  const data = await storage.get(avatarKey(session.username));
+  if (!data) return NextResponse.json({ avatar: null });
 
   try {
-    const data = JSON.parse(readFileSync(path, 'utf8'));
-    return NextResponse.json({ avatar: data.dataUrl });
+    const parsed = JSON.parse(data);
+    return NextResponse.json({ avatar: parsed.dataUrl });
   } catch {
     return NextResponse.json({ avatar: null });
   }
@@ -34,8 +32,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid image data' }, { status: 400 });
     }
 
-    if (!existsSync(AVATAR_DIR)) mkdirSync(AVATAR_DIR, { recursive: true });
-    writeFileSync(getAvatarPath(session.username), JSON.stringify({ dataUrl, updatedAt: new Date().toISOString() }), 'utf8');
+    const storage = getStorage();
+    await storage.set(avatarKey(session.username), JSON.stringify({ dataUrl, updatedAt: new Date().toISOString() }));
 
     return NextResponse.json({ ok: true });
   } catch (err) {
@@ -47,7 +45,7 @@ export async function DELETE() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
 
-  const path = getAvatarPath(session.username);
-  if (existsSync(path)) writeFileSync(path, '', 'utf8');
+  const storage = getStorage();
+  await storage.del(avatarKey(session.username));
   return NextResponse.json({ ok: true });
 }

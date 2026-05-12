@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ executionId: string }> }
 ) {
   const { executionId } = await params;
-  const config = loadGlobalConfig();
+  const config = await loadGlobalConfig();
   const session = await getSession();
 
   if (!config?.kibanaUrl) {

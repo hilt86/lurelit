@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Username and password are required' }, { status: 400 });
     }
 
-    const config = loadGlobalConfig();
+    const config = await loadGlobalConfig();
     if (!config?.kibanaUrl) {
       return NextResponse.json({ error: 'Kibana URL not configured. An admin must set up the connection first.' }, { status: 503 });
     }

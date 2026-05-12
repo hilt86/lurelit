@@ -1,6 +1,5 @@
 import { randomBytes, createCipheriv, createDecipheriv, scryptSync } from 'crypto';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { getStorage } from './storage';
 
 export interface GlobalConfig {
   kibanaUrl: string;
@@ -8,7 +7,7 @@ export interface GlobalConfig {
   huntEnabled: boolean;
 }
 
-const CONFIG_PATH = join(process.cwd(), 'data', '.smish-config.enc');
+const STORAGE_KEY = 'config.enc';
 const SALT = 'smish-analyzer-v1';
 
 function getEncryptionKey(): Buffer {
@@ -36,44 +35,34 @@ function decrypt(data: string): string {
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 }
 
-export function saveGlobalConfig(config: GlobalConfig): void {
+export async function saveGlobalConfig(config: GlobalConfig): Promise<void> {
+  const storage = getStorage();
   const data = encrypt(JSON.stringify(config));
-  try {
-    writeFileSync(CONFIG_PATH, data, 'utf8');
-  } catch {
-    const fallback = join('/tmp', '.smish-config.enc');
-    try {
-      writeFileSync(fallback, data, 'utf8');
-      console.warn(`[Lurelit] Could not write config to ${CONFIG_PATH}, saved to ${fallback}`);
-    } catch (e) {
-      throw new Error(`Permission denied: cannot write config to ${CONFIG_PATH} or ${fallback}. Ensure the app directory is writable or use KIBANA_URL + WORKFLOW_ID environment variables instead. (${e})`);
-    }
-  }
+  await storage.set(STORAGE_KEY, data);
 }
 
-export function loadGlobalConfig(): GlobalConfig | null {
+export async function loadGlobalConfig(): Promise<GlobalConfig | null> {
   if (process.env.KIBANA_URL && process.env.WORKFLOW_ID) {
     return { kibanaUrl: process.env.KIBANA_URL, workflowId: process.env.WORKFLOW_ID, huntEnabled: true };
   }
 
-  const paths = [CONFIG_PATH, join('/tmp', '.smish-config.enc')];
-  for (const p of paths) {
-    if (!existsSync(p)) continue;
-    try {
-      const json = decrypt(readFileSync(p, 'utf8'));
-      const parsed = JSON.parse(json);
-      return { huntEnabled: true, ...parsed } as GlobalConfig;
-    } catch {
-      continue;
-    }
+  const storage = getStorage();
+  try {
+    const data = await storage.get(STORAGE_KEY);
+    if (!data) return null;
+    const json = decrypt(data);
+    const parsed = JSON.parse(json);
+    return { huntEnabled: true, ...parsed } as GlobalConfig;
+  } catch {
+    return null;
   }
-  return null;
 }
 
-export function clearGlobalConfig(): void {
-  if (existsSync(CONFIG_PATH)) writeFileSync(CONFIG_PATH, '', 'utf8');
+export async function clearGlobalConfig(): Promise<void> {
+  const storage = getStorage();
+  await storage.del(STORAGE_KEY);
 }
 
-export function hasGlobalConfig(): boolean {
-  return loadGlobalConfig() !== null;
+export async function hasGlobalConfig(): Promise<boolean> {
+  return (await loadGlobalConfig()) !== null;
 }

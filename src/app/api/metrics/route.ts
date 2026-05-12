@@ -12,7 +12,7 @@ interface ExecSummary {
 }
 
 export async function GET() {
-  const config = loadGlobalConfig();
+  const config = await loadGlobalConfig();
   const session = await getSession();
 
   if (!config?.kibanaUrl || !config?.workflowId) {
