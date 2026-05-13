@@ -32,7 +32,6 @@ export function baseKibanaHeaders(authHeader: string, includeContentType = true)
     ...(includeContentType ? { 'Content-Type': 'application/json' } : {}),
     'kbn-xsrf': 'true',
     'x-elastic-internal-origin': 'kibana',
-    'elastic-api-version': '1',
     Authorization: authHeader,
   };
 }
