@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 
@@ -130,6 +131,13 @@ function AlertBox({ type, children }: { type: 'info' | 'warning' | 'tip'; childr
 }
 
 export default function DocsPage() {
+  const [search, setSearch] = useState('');
+  const filteredSections = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return sections;
+    return sections.filter(s => `${s.label} ${s.id}`.toLowerCase().includes(q));
+  }, [search]);
+
   return (
     <>
       <Nav />
@@ -163,8 +171,23 @@ export default function DocsPage() {
               <p className="mono" style={{ fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--pink)', marginBottom: 14, fontWeight: 600 }}>
                 Contents
               </p>
+              <input
+                className="input mono"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search docs..."
+                style={{
+                  width: '100%',
+                  padding: '9px 10px',
+                  fontSize: 11,
+                  marginBottom: 12,
+                  letterSpacing: '0.08em',
+                }}
+              />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {sections.map((s, i) => (
+                {filteredSections.length > 0 ? filteredSections.map((s) => {
+                  const i = sections.findIndex(section => section.id === s.id);
+                  return (
                   <a
                     key={s.id}
                     href={`#${s.id}`}
@@ -181,7 +204,9 @@ export default function DocsPage() {
                     <span style={{ color: 'var(--teal)', fontSize: 10, minWidth: 16 }}>{String(i + 1).padStart(2, '0')}</span>
                     {s.label}
                   </a>
-                ))}
+                );}) : (
+                  <span className="mono" style={{ fontSize: 11, color: 'var(--text-faint)', padding: '8px 10px' }}>No matches</span>
+                )}
               </div>
             </aside>
 
