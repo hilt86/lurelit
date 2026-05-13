@@ -27,7 +27,7 @@ export async function GET(
   const { executionId } = await params;
 
   try {
-    const execution = await getExecution(executionId, false);
+    const execution = await getExecution(executionId, true);
     const context = execution.context as { inputs?: Record<string, unknown> } | undefined;
 
     return NextResponse.json({

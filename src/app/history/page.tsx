@@ -55,6 +55,7 @@ const STATUS_STYLES: Record<string, { color: string; bg: string; border: string;
 
 function HistoryThumbnail({ executionId }: { executionId: string }) {
   const [src, setSrc] = useState<string | null | undefined>(undefined);
+  const isLoading = src === undefined;
 
   useEffect(() => {
     let cancelled = false;
@@ -84,28 +85,36 @@ function HistoryThumbnail({ executionId }: { executionId: string }) {
   return (
     <div
       aria-label={src ? 'Screenshot thumbnail' : 'No screenshot thumbnail available'}
+      title={src ? 'Submitted screenshot' : isLoading ? 'Loading screenshot thumbnail' : 'Screenshot unavailable'}
       style={{
-        width: 42, height: 32, borderRadius: 3, overflow: 'hidden',
-        background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+        width: 50, height: 38, borderRadius: 4, overflow: 'hidden',
+        background: src ? 'var(--bg-surface)' : 'rgba(0,191,179,0.06)',
+        border: `1px solid ${src ? 'var(--border-strong)' : 'rgba(0,191,179,0.22)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: src ? '0 0 10px rgba(0,191,179,0.12)' : 'none',
+        boxShadow: src ? '0 0 12px rgba(0,191,179,0.18)' : 'inset 0 0 8px rgba(0,191,179,0.08)',
+        justifySelf: 'start',
       }}
     >
       {src ? (
         <Image
           src={src}
           alt=""
-          width={42}
-          height={32}
+          width={50}
+          height={38}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           unoptimized
         />
       ) : (
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ color: 'var(--text-faint)', opacity: src === undefined ? 0.35 : 0.55 }}>
-          <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.1" />
-          <circle cx="6" cy="7" r="1.2" stroke="currentColor" strokeWidth="1" />
-          <path d="M2.5 11l3-2.5 2.2 1.8L10.5 7l3 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ color: 'var(--teal)', opacity: isLoading ? 0.5 : 0.8 }}>
+            <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.1" />
+            <circle cx="6" cy="7" r="1.2" stroke="currentColor" strokeWidth="1" />
+            <path d="M2.5 11l3-2.5 2.2 1.8L10.5 7l3 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          <span className="mono" style={{ fontSize: 6, lineHeight: 1, color: 'var(--teal)', letterSpacing: '0.12em', opacity: isLoading ? 0.45 : 0.65 }}>
+            {isLoading ? 'LOAD' : 'SHOT'}
+          </span>
+        </div>
       )}
     </div>
   );
@@ -281,7 +290,7 @@ function HistoryContent() {
                     key={exec.id}
                     href={`/results/${exec.id}`}
                     style={{
-                      display: 'grid', gridTemplateColumns: '32px 28px 56px minmax(0, 1fr) 120px 120px 80px', gap: 0, padding: '14px 20px',
+                      display: 'grid', gridTemplateColumns: '32px 28px 68px minmax(0, 1fr) 120px 120px 80px', gap: 0, padding: '14px 20px',
                       borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none',
                       cursor: 'pointer', transition: 'all 0.2s', alignItems: 'center', textDecoration: 'none',
                       color: 'inherit',
