@@ -69,6 +69,19 @@ export async function validateApiKey(kibanaUrl: string, apiKey: string): Promise
   return validateAuthHeader(kibanaUrl, `ApiKey ${apiKey.trim()}`);
 }
 
+export async function resolveCurrentUser(kibanaUrl: string, authHeader: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${kibanaUrl}/internal/security/me`, {
+      headers: baseKibanaHeaders(authHeader, false),
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { username?: string; full_name?: string; email?: string; authentication_provider?: { name?: string } };
+    return data.username || data.email || data.full_name || null;
+  } catch {
+    return null;
+  }
+}
+
 async function validateAuthHeader(kibanaUrl: string, authHeader: string): Promise<{ ok: boolean; message: string }> {
   try {
     const res = await fetch(`${kibanaUrl}/api/status`, {

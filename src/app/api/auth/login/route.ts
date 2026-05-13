@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateApiKey, validateCredentials } from '@/lib/elastic';
+import { resolveCurrentUser, validateApiKey, validateCredentials } from '@/lib/elastic';
 import { createApiKeySession, createSession } from '@/lib/session';
 import { loadGlobalConfig } from '@/lib/config';
+import { buildApiKeyAuthHeader } from '@/lib/kibana-auth';
 import type { AuthMode } from '@/lib/kibana-auth';
 
 export async function POST(request: NextRequest) {
@@ -29,13 +30,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.message }, { status: 401 });
     }
 
+    let displayUsername = username;
     if (authMode === 'api_key') {
-      await createApiKeySession(apiKey!, username || 'api-key-user');
+      const resolvedUser = await resolveCurrentUser(config.kibanaUrl, buildApiKeyAuthHeader(apiKey!));
+      displayUsername = resolvedUser || username || 'api-key-user';
+      await createApiKeySession(apiKey!, displayUsername);
     } else {
       await createSession(username!, password!);
     }
 
-    return NextResponse.json({ ok: true, username: username || 'api-key-user' });
+    return NextResponse.json({ ok: true, username: displayUsername });
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Login failed' }, { status: 500 });
   }
