@@ -684,14 +684,21 @@ h1, h2, h3 { font-weight: 800; letter-spacing: -0.03em; }
   }
 
   .verdict-report {
+    display: block !important;
     max-width: none !important;
     margin-top: 24px !important;
     gap: 14px !important;
   }
 
+  .verdict-report > * {
+    margin-bottom: 14px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
   .print-section {
-    break-inside: auto;
-    page-break-inside: auto;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .print-section > div:first-child,
@@ -711,6 +718,7 @@ h1, h2, h3 { font-weight: 800; letter-spacing: -0.03em; }
   .print-report li,
   .print-report span,
   .print-report div {
+    overflow: visible !important;
     overflow-wrap: anywhere;
   }
 }
