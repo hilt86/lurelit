@@ -469,7 +469,7 @@ export default function ResultsPage({ params }: { params: Promise<{ executionId:
           )}
 
           {/* Timeline (collapsible when done) */}
-          <div>
+          <div className="no-print">
             {isTerminal && data && (
               <button
                 onClick={() => setStepsCollapsed(!stepsCollapsed)}

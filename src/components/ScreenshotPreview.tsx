@@ -10,7 +10,7 @@ export default function ScreenshotPreview({ src }: { src: string }) {
     <>
       <div
         onClick={() => setLightbox(true)}
-        className="card"
+        className="card no-print"
         style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 12, cursor: 'zoom-in', overflow: 'hidden' }}
       >
         {/* Thumbnail */}
@@ -72,6 +72,26 @@ export default function ScreenshotPreview({ src }: { src: string }) {
           </div>
         </>
       )}
+
+      <div className="print-only print-screenshot-card">
+        <p className="label-sm" style={{ color: 'var(--teal)', marginBottom: 10 }}>Submitted Screenshot</p>
+        <div style={{
+          border: '1px solid var(--border-strong)',
+          borderRadius: 3,
+          padding: 12,
+          background: '#fff',
+          textAlign: 'center',
+        }}>
+          <Image
+            src={src}
+            alt="Submitted screenshot"
+            width={900}
+            height={700}
+            style={{ width: 'auto', maxWidth: '100%', height: 'auto', maxHeight: 420, objectFit: 'contain' }}
+            unoptimized
+          />
+        </div>
+      </div>
     </>
   );
 }
