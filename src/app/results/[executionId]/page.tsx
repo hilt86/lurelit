@@ -33,19 +33,25 @@ function UserAvatar({ username }: { username: string }) {
 }
 
 function ElapsedTimer({ startedAt, completedAt }: { startedAt?: string; completedAt?: string }) {
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
     if (completedAt) return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
+    const update = () => setNow(Date.now());
+    const timeout = window.setTimeout(update, 0);
+    const interval = window.setInterval(update, 1000);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
   }, [completedAt]);
 
   if (!startedAt) return null;
 
   const start = new Date(startedAt).getTime();
   const end = completedAt ? new Date(completedAt).getTime() : now;
-  const totalSec = Math.floor((end - start) / 1000);
+  if (end === null) return null;
+  const totalSec = Math.max(0, Math.floor((end - start) / 1000));
   const m = Math.floor(totalSec / 60);
   const s = totalSec % 60;
   const display = m > 0 ? `${m}:${s.toString().padStart(2, '0')}` : `0:${s.toString().padStart(2, '0')}`;
@@ -108,6 +114,10 @@ export default function ResultsPage({ params }: { params: Promise<{ executionId:
   const isTerminal = data?.status === 'completed' || data?.status === 'failed' || data?.status === 'cancelled';
   const isWaiting = data?.isAwaitingInput === true;
 
+  const handleExportPdf = useCallback(() => {
+    window.print();
+  }, []);
+
   const handleCancel = async () => {
     setCancelling(true);
     try {
@@ -120,16 +130,25 @@ export default function ResultsPage({ params }: { params: Promise<{ executionId:
 
   useEffect(() => {
     if (isTerminal && !hasAutoCollapsed) {
-      setStepsCollapsed(true);
-      setHasAutoCollapsed(true);
+      const id = window.setTimeout(() => {
+        setStepsCollapsed(true);
+        setHasAutoCollapsed(true);
+      }, 0);
+      return () => window.clearTimeout(id);
     }
   }, [isTerminal, hasAutoCollapsed]);
 
   useEffect(() => {
+    let cancelled = false;
     try {
       const stored = localStorage.getItem(`screenshot:${executionId}`);
-      if (stored) setScreenshot(stored);
+      if (stored) {
+        Promise.resolve().then(() => {
+          if (!cancelled) setScreenshot(stored);
+        });
+      }
     } catch {}
+    return () => { cancelled = true; };
   }, [executionId]);
 
   const fetchStatus = useCallback(async () => {
@@ -147,18 +166,21 @@ export default function ResultsPage({ params }: { params: Promise<{ executionId:
   }, [executionId, screenshot]);
 
   useEffect(() => {
-    fetchStatus();
-    const interval = setInterval(() => { if (!isTerminal) fetchStatus(); }, POLL_INTERVAL);
-    return () => clearInterval(interval);
+    const timeout = window.setTimeout(fetchStatus, 0);
+    const interval = window.setInterval(() => { if (!isTerminal) fetchStatus(); }, POLL_INTERVAL);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
   }, [fetchStatus, isTerminal]);
 
   return (
     <>
       <Nav />
-      <main style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 80, paddingBottom: 64 }}>
-        <div style={{ width: '100%', maxWidth: 880, margin: '0 auto', padding: '0 32px' }}>
+      <main className="print-report" style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 80, paddingBottom: 64 }}>
+        <div className="print-report-container" style={{ width: '100%', maxWidth: 880, margin: '0 auto', padding: '0 32px' }}>
           {/* Top bar */}
-          <div className="row gap-4 animate-fade-in" style={{ marginBottom: 8, paddingTop: 40, justifyContent: 'space-between' }}>
+          <div className="row gap-4 animate-fade-in no-print" style={{ marginBottom: 8, paddingTop: 40, justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4, 12px)' }}>
               <Link href="/" className="mono" style={{ background: 'none', border: 0, color: 'var(--text-faint)', cursor: 'pointer', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', textDecoration: 'none' }}>
                 ← Back
@@ -168,25 +190,56 @@ export default function ResultsPage({ params }: { params: Promise<{ executionId:
                 EXEC_ID:&nbsp;<span style={{ color: 'var(--text-dim)' }}>{executionId.slice(0, 16)}</span>
               </span>
             </div>
-            {!isTerminal && !isWaiting && data && (
-              <button
-                onClick={() => setCancelConfirm(true)}
-                disabled={cancelling}
-                className="mono"
-                style={{
-                  fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
-                  color: 'var(--text-faint)', background: 'none', border: '1px solid var(--border-strong)',
-                  borderRadius: 3, padding: '5px 10px', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--pink)'; e.currentTarget.style.color = 'var(--pink)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.color = 'var(--text-faint)'; }}
-              >
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
-                Cut the line
-              </button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {isTerminal && data && data.status !== 'cancelled' && (
+                <button
+                  onClick={handleExportPdf}
+                  className="mono"
+                  style={{
+                    fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: 'var(--teal-bright)', background: 'rgba(0,191,179,0.06)', border: '1px solid rgba(0,191,179,0.35)',
+                    borderRadius: 3, padding: '6px 12px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--teal)'; e.currentTarget.style.background = 'rgba(0,191,179,0.10)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(0,191,179,0.35)'; e.currentTarget.style.background = 'rgba(0,191,179,0.06)'; }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                    <path d="M3 1.5h5l3 3V12a.5.5 0 0 1-.5.5h-7A.5.5 0 0 1 3 12v-10a.5.5 0 0 1 .5-.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
+                    <path d="M8 1.5v3h3M5 8h4M5 10h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  Export PDF
+                </button>
+              )}
+              {!isTerminal && !isWaiting && data && (
+                <button
+                  onClick={() => setCancelConfirm(true)}
+                  disabled={cancelling}
+                  className="mono"
+                  style={{
+                    fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase',
+                    color: 'var(--text-faint)', background: 'none', border: '1px solid var(--border-strong)',
+                    borderRadius: 3, padding: '5px 10px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--pink)'; e.currentTarget.style.color = 'var(--pink)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.color = 'var(--text-faint)'; }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 2l6 6M8 2l-6 6" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" /></svg>
+                  Cut the line
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="print-only" style={{ marginBottom: 24 }}>
+            <p className="label" style={{ color: 'var(--teal)', marginBottom: 6 }}>Lurelit Analysis Report</p>
+            <h1 className="display" style={{ color: 'var(--text)', fontSize: 28, marginBottom: 6 }}>Phishing/Smishing Verdict</h1>
+            <p className="mono" style={{ color: 'var(--text-dim)', fontSize: 10, letterSpacing: '0.08em' }}>
+              Execution ID: {executionId}
+            </p>
           </div>
 
           {/* Hero row */}
@@ -368,7 +421,7 @@ export default function ResultsPage({ params }: { params: Promise<{ executionId:
               </div>
             </div>
 
-            <div style={{ flexShrink: 0 }}>
+            <div className="no-print" style={{ flexShrink: 0 }}>
               <LurelitMascot
                 size={140}
                 state={
@@ -450,7 +503,7 @@ export default function ResultsPage({ params }: { params: Promise<{ executionId:
 
           {/* Back button */}
           {isTerminal && (
-            <div className="row gap-3 animate-fade-in" style={{ marginTop: 40, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <div className="row gap-3 animate-fade-in no-print" style={{ marginTop: 40, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M14 8H2M2 8l5-5M2 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 Analyze Another
