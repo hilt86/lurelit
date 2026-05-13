@@ -30,10 +30,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.message }, { status: 401 });
     }
 
-    let displayUsername = username;
+    const cleanDisplayName = username?.trim();
+    let displayUsername = cleanDisplayName;
     if (authMode === 'api_key') {
       const resolvedUser = await resolveCurrentUser(config.kibanaUrl, buildApiKeyAuthHeader(apiKey!));
-      displayUsername = resolvedUser || username || 'api-key-user';
+      const meaningfulResolvedUser = resolvedUser && resolvedUser !== 'api-key-user' && !/^\d+$/.test(resolvedUser)
+        ? resolvedUser
+        : null;
+      displayUsername = cleanDisplayName || meaningfulResolvedUser || 'api-key-user';
       await createApiKeySession(apiKey!, displayUsername);
     } else {
       await createSession(username!, password!);
