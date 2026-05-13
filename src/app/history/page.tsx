@@ -92,7 +92,7 @@ function HistoryThumbnail({ executionId }: { executionId: string }) {
         border: `1px solid ${src ? 'var(--border-strong)' : 'rgba(0,191,179,0.22)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         boxShadow: src ? '0 0 12px rgba(0,191,179,0.18)' : 'inset 0 0 8px rgba(0,191,179,0.08)',
-        justifySelf: 'start',
+        justifySelf: 'center',
       }}
     >
       {src ? (
@@ -290,7 +290,7 @@ function HistoryContent() {
                     key={exec.id}
                     href={`/results/${exec.id}`}
                     style={{
-                      display: 'grid', gridTemplateColumns: '32px 28px 68px minmax(0, 1fr) 120px 120px 80px', gap: 0, padding: '14px 20px',
+                      display: 'grid', gridTemplateColumns: '32px 28px minmax(0, 1fr) 68px 120px 120px 80px', gap: 0, padding: '14px 20px',
                       borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none',
                       cursor: 'pointer', transition: 'all 0.2s', alignItems: 'center', textDecoration: 'none',
                       color: 'inherit',
@@ -323,8 +323,6 @@ function HistoryContent() {
                       </div>
                     ) : <div />}
 
-                    <HistoryThumbnail executionId={exec.id} />
-
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
                         <span className="mono" style={{
@@ -347,6 +345,8 @@ function HistoryContent() {
                         {exec.id}
                       </p>
                     </div>
+
+                    <HistoryThumbnail executionId={exec.id} />
 
                     <span className="mono" style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
                       {formatDuration(exec.duration)}
