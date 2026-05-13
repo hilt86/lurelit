@@ -55,6 +55,7 @@ const STATUS_STYLES: Record<string, { color: string; bg: string; border: string;
 
 function HistoryThumbnail({ executionId }: { executionId: string }) {
   const [src, setSrc] = useState<string | null | undefined>(undefined);
+  const [lightbox, setLightbox] = useState(false);
   const isLoading = src === undefined;
 
   useEffect(() => {
@@ -82,41 +83,84 @@ function HistoryThumbnail({ executionId }: { executionId: string }) {
     return () => { cancelled = true; };
   }, [executionId]);
 
+  const handleOpen = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (src) setLightbox(true);
+  };
+
   return (
-    <div
-      aria-label={src ? 'Screenshot thumbnail' : 'No screenshot thumbnail available'}
-      title={src ? 'Submitted screenshot' : isLoading ? 'Loading screenshot thumbnail' : 'Screenshot unavailable'}
-      style={{
-        width: 50, height: 38, borderRadius: 4, overflow: 'hidden',
-        background: src ? 'var(--bg-surface)' : 'rgba(0,191,179,0.06)',
-        border: `1px solid ${src ? 'var(--border-strong)' : 'rgba(0,191,179,0.22)'}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: src ? '0 0 12px rgba(0,191,179,0.18)' : 'inset 0 0 8px rgba(0,191,179,0.08)',
-        justifySelf: 'center',
-      }}
-    >
-      {src ? (
-        <Image
-          src={src}
-          alt=""
-          width={50}
-          height={38}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-          unoptimized
-        />
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ color: 'var(--teal)', opacity: isLoading ? 0.5 : 0.8 }}>
-            <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.1" />
-            <circle cx="6" cy="7" r="1.2" stroke="currentColor" strokeWidth="1" />
-            <path d="M2.5 11l3-2.5 2.2 1.8L10.5 7l3 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className="mono" style={{ fontSize: 6, lineHeight: 1, color: 'var(--teal)', letterSpacing: '0.12em', opacity: isLoading ? 0.45 : 0.65 }}>
-            {isLoading ? 'LOAD' : 'SHOT'}
-          </span>
-        </div>
+    <>
+      <button
+        type="button"
+        onClick={handleOpen}
+        aria-label={src ? 'Expand screenshot thumbnail' : 'No screenshot thumbnail available'}
+        title={src ? 'Click to enlarge screenshot' : isLoading ? 'Loading screenshot thumbnail' : 'Screenshot unavailable'}
+        style={{
+          width: 50, height: 38, borderRadius: 4, overflow: 'hidden',
+          background: src ? 'var(--bg-surface)' : 'rgba(0,191,179,0.06)',
+          border: `1px solid ${src ? 'var(--border-strong)' : 'rgba(0,191,179,0.22)'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: src ? '0 0 12px rgba(0,191,179,0.18)' : 'inset 0 0 8px rgba(0,191,179,0.08)',
+          justifySelf: 'center',
+          cursor: src ? 'zoom-in' : 'default',
+          padding: 0,
+        }}
+      >
+        {src ? (
+          <Image
+            src={src}
+            alt=""
+            width={50}
+            height={38}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            unoptimized
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" style={{ color: 'var(--teal)', opacity: isLoading ? 0.5 : 0.8 }}>
+              <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.1" />
+              <circle cx="6" cy="7" r="1.2" stroke="currentColor" strokeWidth="1" />
+              <path d="M2.5 11l3-2.5 2.2 1.8L10.5 7l3 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span className="mono" style={{ fontSize: 6, lineHeight: 1, color: 'var(--teal)', letterSpacing: '0.12em', opacity: isLoading ? 0.45 : 0.65 }}>
+              {isLoading ? 'LOAD' : 'SHOT'}
+            </span>
+          </div>
+        )}
+      </button>
+
+      {src && lightbox && (
+        <>
+          <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLightbox(false); }} style={{
+            position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(5,7,13,0.92)',
+            backdropFilter: 'blur(8px)', cursor: 'zoom-out',
+          }} />
+          <div onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLightbox(false); }} style={{
+            position: 'fixed', inset: 0, zIndex: 201,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 40, cursor: 'zoom-out',
+          }}>
+            <div className="animate-fade-in" style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+              <Image
+                src={src} alt="Screenshot" width={1200} height={900}
+                style={{ objectFit: 'contain', maxHeight: '85vh', maxWidth: '85vw', width: 'auto', borderRadius: 3, border: '1px solid var(--border-strong)' }}
+                unoptimized
+              />
+              <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLightbox(false); }} style={{
+                position: 'absolute', top: -14, right: -14, width: 32, height: 32, borderRadius: '50%',
+                background: 'var(--bg-panel)', border: '1px solid var(--border-strong)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+              }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M3 3l8 8M11 3l-8 8" stroke="var(--text-dim)" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </>
       )}
-    </div>
+    </>
   );
 }
 

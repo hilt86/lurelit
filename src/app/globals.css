@@ -589,3 +589,106 @@ h1, h2, h3 { font-weight: 800; letter-spacing: -0.03em; }
 .connection-banner-dismiss:hover {
   color: var(--pink);
 }
+
+@media screen {
+  .print-only {
+    display: none !important;
+  }
+}
+
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  :root {
+    --bg: #ffffff;
+    --bg-deep: #ffffff;
+    --bg-panel: #ffffff;
+    --bg-elevated: #ffffff;
+    --bg-surface: #f7f5fb;
+    --border: #d9d3e8;
+    --border-strong: #bdb2d6;
+    --text: #151021;
+    --text-dim: #3f3657;
+    --text-faint: #6b617f;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    animation: none !important;
+    transition: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: var(--text) !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  .no-print,
+  .nav,
+  footer,
+  .hud-corner,
+  .connection-banner {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .atmos-base::before,
+  body[data-atmos]::after,
+  .atmos-layer,
+  .atmos-scan {
+    display: none !important;
+  }
+
+  main,
+  nav,
+  header,
+  section,
+  footer,
+  .app-root,
+  #__next,
+  [data-nextjs-scroll-focus-boundary] {
+    position: static !important;
+    z-index: auto !important;
+  }
+
+  .print-report {
+    display: block !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .print-report-container {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .card {
+    background: #ffffff !important;
+    border-color: var(--border-strong) !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .card::before {
+    display: none !important;
+  }
+
+  .print-report pre {
+    max-height: none !important;
+    white-space: pre-wrap !important;
+  }
+
+  .print-report details {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
