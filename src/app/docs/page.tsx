@@ -130,6 +130,34 @@ function AlertBox({ type, children }: { type: 'info' | 'warning' | 'tip'; childr
   );
 }
 
+function Highlight({ text, query }: { text: string; query: string }) {
+  const q = query.trim();
+  if (!q) return <>{text}</>;
+  const lower = text.toLowerCase();
+  const needle = q.toLowerCase();
+  const parts: React.ReactNode[] = [];
+  let cursor = 0;
+  let idx = lower.indexOf(needle);
+  while (idx !== -1) {
+    if (idx > cursor) parts.push(text.slice(cursor, idx));
+    parts.push(
+      <mark key={`${idx}-${needle}`} style={{
+        background: 'rgba(0,191,179,0.18)',
+        color: 'var(--teal-bright)',
+        border: '1px solid rgba(0,191,179,0.25)',
+        borderRadius: 2,
+        padding: '0 2px',
+      }}>
+        {text.slice(idx, idx + q.length)}
+      </mark>
+    );
+    cursor = idx + q.length;
+    idx = lower.indexOf(needle, cursor);
+  }
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return <>{parts}</>;
+}
+
 export default function DocsPage() {
   const [search, setSearch] = useState('');
   const [sectionIndex, setSectionIndex] = useState<Record<string, string>>({});
@@ -229,9 +257,9 @@ export default function DocsPage() {
                       }}
                     >
                       <span className="mono" style={{ display: 'block', fontSize: 10, color: 'var(--teal-bright)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
-                        {String(s.index + 1).padStart(2, '0')} · {s.label}
+                        {String(s.index + 1).padStart(2, '0')} · <Highlight text={s.label} query={search} />
                       </span>
-                      <span style={{ display: 'block', fontSize: 11, lineHeight: 1.45, color: 'var(--text-faint)' }}>{s.snippet}</span>
+                      <span style={{ display: 'block', fontSize: 11, lineHeight: 1.45, color: 'var(--text-faint)' }}><Highlight text={s.snippet} query={search} /></span>
                     </a>
                   )) : (
                     <span className="mono" style={{ fontSize: 11, color: 'var(--text-faint)', padding: '8px 10px' }}>No matches</span>
