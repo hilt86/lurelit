@@ -115,18 +115,31 @@ export default function LoginPage() {
                 </div>
               </>
             ) : (
-              <div>
-                <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Elastic API Key</label>
-                <textarea
-                  className="input"
-                  value={apiKey}
-                  onChange={e => setApiKey(e.target.value)}
-                  placeholder="Paste an encoded Elastic API key"
-                  rows={3}
-                  autoFocus
-                  style={{ resize: 'vertical', minHeight: 96 }}
-                />
-              </div>
+              <>
+                <div>
+                  <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Display name</label>
+                  <input
+                    className="input"
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    placeholder="analyst"
+                    autoFocus
+                    autoComplete="username"
+                  />
+                </div>
+                <div>
+                  <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Elastic API Key</label>
+                  <textarea
+                    className="input"
+                    value={apiKey}
+                    onChange={e => setApiKey(e.target.value)}
+                    placeholder="Paste an encoded Elastic API key"
+                    rows={3}
+                    style={{ resize: 'vertical', minHeight: 96 }}
+                  />
+                </div>
+              </>
             )}
 
             {error && (

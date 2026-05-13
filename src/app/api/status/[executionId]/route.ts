@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getExecution, getExecutionLogs } from '@/lib/elastic';
 import { isDemoExecution, getDemoStatus } from '@/lib/demo';
+import { getSession } from '@/lib/session';
 import type { WorkflowStatus, StepExecution, LogEntry, EnrichmentDetail, EnrichmentSource } from '@/lib/types';
 
 const HIDDEN_STEP_TYPES = new Set(['if', 'console', 'step_level_timeout']);
@@ -82,6 +83,7 @@ export async function GET(
   }
 
   try {
+    const session = await getSession();
     const [execution, logsData] = await Promise.all([
       getExecution(executionId, true),
       getExecutionLogs(executionId, 100).catch(() => ({ data: [] })),
@@ -216,6 +218,14 @@ export async function GET(
       !hasActiveSteps &&
       rawSteps.some(s => s.stepType === 'waitForInput' && (s.status === 'waiting_for_input' || s.status === 'waiting'));
 
+    const normalizeUser = (value?: string) => {
+      const raw = value ?? '';
+      if (session?.authMode === 'api_key' && (!raw || raw === 'api-key-user' || /^\d+$/.test(raw))) {
+        return session.username;
+      }
+      return raw || undefined;
+    };
+
     const response: WorkflowStatus = {
       executionId,
       status: effectiveStatus,
@@ -225,7 +235,7 @@ export async function GET(
       completedAt: execution.finishedAt ?? execution.completedAt,
       screenshot: includeScreenshot && imageBase64 ? `data:${mediaType};base64,${imageBase64}` : undefined,
       mediaType,
-      executedBy: execution.executedBy,
+      executedBy: normalizeUser(execution.executedBy),
       enrichmentDetails: enrichmentDetails.length > 0 ? enrichmentDetails : undefined,
       totalSteps: totalSteps > 0 ? totalSteps : undefined,
       isAwaitingInput,

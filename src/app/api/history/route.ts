@@ -28,13 +28,21 @@ export async function GET(request: NextRequest) {
     if (!res.ok) throw new Error(`Kibana returned ${res.status}`);
     const data = await res.json();
 
+    const normalizeUser = (value: unknown) => {
+      const raw = typeof value === 'string' ? value : '';
+      if (session.authMode === 'api_key' && (!raw || raw === 'api-key-user' || /^\d+$/.test(raw))) {
+        return session.username;
+      }
+      return raw || undefined;
+    };
+
     const results = (data.results ?? []).map((e: Record<string, unknown>) => ({
       id: e.id,
       status: (e.status as string)?.toLowerCase() ?? 'unknown',
       startedAt: e.startedAt,
       finishedAt: e.finishedAt,
       duration: e.duration,
-      executedBy: e.executedBy,
+      executedBy: normalizeUser(e.executedBy),
       triggeredBy: e.triggeredBy,
       error: e.error,
       isTestRun: e.isTestRun,

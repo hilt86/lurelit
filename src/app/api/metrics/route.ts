@@ -29,6 +29,13 @@ export async function GET() {
     if (!listRes.ok) throw new Error(`Kibana: ${listRes.status}`);
     const listData = await listRes.json();
     const allExecs: ExecSummary[] = listData.results ?? [];
+    const normalizeUser = (value?: string) => {
+      const raw = value ?? '';
+      if (session.authMode === 'api_key' && (!raw || raw === 'api-key-user' || /^\d+$/.test(raw))) {
+        return session.username;
+      }
+      return raw || undefined;
+    };
 
     const completedIds = allExecs.filter(e => e.status === 'completed').map(e => e.id);
 
@@ -74,7 +81,8 @@ export async function GET() {
       }
 
       if (exec.duration) { totalDuration += exec.duration; durationCount++; }
-      if (exec.executedBy) { userCounts[exec.executedBy] = (userCounts[exec.executedBy] ?? 0) + 1; }
+      const executedBy = normalizeUser(exec.executedBy);
+      if (executedBy) { userCounts[executedBy] = (userCounts[executedBy] ?? 0) + 1; }
 
       const day = exec.startedAt ? exec.startedAt.slice(0, 10) : 'unknown';
       if (!dailyCounts[day]) dailyCounts[day] = { total: 0, threats: 0 };
