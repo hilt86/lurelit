@@ -821,21 +821,21 @@ export default function SetupPage() {
                   <CheckIcon pass={checkResult.workflows} />
                   <span className="mono" style={{ fontSize: 13 }}>Workflows API</span>
                   <span style={{ color: 'var(--text-faint)', fontSize: 11, marginLeft: 'auto' }}>
-                    {checkResult.workflows ? 'Available' : 'Not found'}
+                    {checkResult.workflows ? 'Available' : 'Needs access'}
                   </span>
                 </div>
                 <div className="row gap-3">
                   <CheckIcon pass={checkResult.agentBuilder} />
                   <span className="mono" style={{ fontSize: 13 }}>Agent Builder</span>
                   <span style={{ color: 'var(--text-faint)', fontSize: 11, marginLeft: 'auto' }}>
-                    {checkResult.agentBuilder ? 'Available' : 'Not found'}
+                    {checkResult.agentBuilder ? 'Available' : 'Check access'}
                   </span>
                 </div>
                 <div className="row gap-3">
                   <CheckIcon pass={checkResult.security} />
                   <span className="mono" style={{ fontSize: 13 }}>Security solution</span>
                   <span style={{ color: 'var(--text-faint)', fontSize: 11, marginLeft: 'auto' }}>
-                    {checkResult.security ? 'Enabled' : 'Not enabled'}
+                    {checkResult.security ? 'Enabled' : 'Check access'}
                   </span>
                 </div>
               </div>

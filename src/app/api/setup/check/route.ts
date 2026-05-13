@@ -18,6 +18,24 @@ interface CheckResult {
   errors: string[];
 }
 
+async function responseSummary(res: Response): Promise<string> {
+  const body = await res.text().catch(() => '');
+  if (!body) return `HTTP ${res.status}`;
+  try {
+    const parsed = JSON.parse(body) as { message?: string; error?: string };
+    return parsed.message || parsed.error || `HTTP ${res.status}`;
+  } catch {
+    return body.slice(0, 180);
+  }
+}
+
+function permissionHint(feature: string, status: number): string {
+  if (status === 401) return `${feature}: authentication failed`;
+  if (status === 403) return `${feature}: API key is valid but lacks required Kibana privileges`;
+  if (status === 404) return `${feature}: endpoint not found in this project/space`;
+  return `${feature}: Kibana returned ${status}`;
+}
+
 export async function POST(request: Request) {
   try {
     const body: CheckRequest = await request.json();
@@ -57,34 +75,40 @@ export async function POST(request: Request) {
       return NextResponse.json(result);
     }
 
-    // Check workflows
+    // Check workflows. Serverless supports /api/workflows, but privilege errors should be
+    // surfaced as auth/permission problems rather than "feature missing".
     try {
-      const wfRes = await fetch(`${normalizedUrl}/api/workflows`, { headers });
+      const wfRes = await fetch(`${normalizedUrl}/api/workflows?size=1`, { headers });
       result.workflows = wfRes.ok;
       if (!result.workflows) {
-        result.errors.push('Workflows API not available');
+        const detail = await responseSummary(wfRes);
+        result.errors.push(`${permissionHint('Workflows API', wfRes.status)} (${detail})`);
       }
     } catch {
       result.errors.push('Could not reach Workflows API');
     }
 
-    // Check Agent Builder
+    // Check Agent Builder. This is required by the bundled workflow's ai.agent steps, but
+    // return statuses can differ by license/project type, so keep the message diagnostic.
     try {
       const abRes = await fetch(`${normalizedUrl}/api/agent_builder/agents`, { headers });
       result.agentBuilder = abRes.ok || abRes.status === 404;
       if (!result.agentBuilder) {
-        result.errors.push('Agent Builder not available');
+        const detail = await responseSummary(abRes);
+        result.errors.push(`${permissionHint('Agent Builder', abRes.status)} (${detail})`);
       }
     } catch {
       result.errors.push('Could not reach Agent Builder API');
     }
 
-    // Check Security solution
+    // Check Security solution. This is a capability probe only; the workflow can still be
+    // imported if the API key has index read privileges for the hunt step.
     try {
       const secRes = await fetch(`${normalizedUrl}/api/detection_engine/rules/_find?per_page=1`, { headers });
       result.security = secRes.ok || secRes.status === 404;
       if (!result.security) {
-        result.errors.push('Security solution not enabled');
+        const detail = await responseSummary(secRes);
+        result.errors.push(`${permissionHint('Security solution probe', secRes.status)} (${detail})`);
       }
     } catch {
       result.errors.push('Could not reach Security API');
