@@ -447,6 +447,14 @@ h1, h2, h3 { font-weight: 800; letter-spacing: -0.03em; }
   text-shadow: 0 0 18px rgba(0,191,179,0.6), 0 0 4px rgba(0,191,179,0.3);
 }
 
+.docs-search-highlight {
+  background: rgba(0, 191, 179, 0.18);
+  color: var(--teal-bright);
+  border: 1px solid rgba(0, 191, 179, 0.25);
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
 .hud-corner {
   position: fixed;
   font-family: var(--font-mono);

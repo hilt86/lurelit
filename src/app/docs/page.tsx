@@ -161,6 +161,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
 export default function DocsPage() {
   const [search, setSearch] = useState('');
   const [sectionIndex, setSectionIndex] = useState<Record<string, string>>({});
+
   useEffect(() => {
     const index: Record<string, string> = {};
     for (const section of sections) {
@@ -169,6 +170,53 @@ export default function DocsPage() {
     }
     setSectionIndex(index);
   }, []);
+
+  useEffect(() => {
+    const root = document.querySelector('[data-docs-content]');
+    if (!root) return;
+
+    root.querySelectorAll('mark.docs-search-highlight').forEach(mark => {
+      const text = document.createTextNode(mark.textContent ?? '');
+      mark.replaceWith(text);
+    });
+    root.normalize();
+
+    const q = search.trim();
+    if (!q) return;
+
+    const escaped = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped, 'gi');
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (!parent) return NodeFilter.FILTER_REJECT;
+        if (parent.closest('mark, code, pre, input, textarea')) return NodeFilter.FILTER_REJECT;
+        if (!node.nodeValue || !regex.test(node.nodeValue)) return NodeFilter.FILTER_REJECT;
+        regex.lastIndex = 0;
+        return NodeFilter.FILTER_ACCEPT;
+      },
+    });
+
+    const nodes: Text[] = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+
+    for (const node of nodes) {
+      const value = node.nodeValue ?? '';
+      const frag = document.createDocumentFragment();
+      let cursor = 0;
+      value.replace(regex, (match, offset) => {
+        if (offset > cursor) frag.appendChild(document.createTextNode(value.slice(cursor, offset)));
+        const mark = document.createElement('mark');
+        mark.className = 'docs-search-highlight';
+        mark.textContent = match;
+        frag.appendChild(mark);
+        cursor = offset + match.length;
+        return match;
+      });
+      if (cursor < value.length) frag.appendChild(document.createTextNode(value.slice(cursor)));
+      node.replaceWith(frag);
+    }
+  }, [search]);
 
   const searchResults = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -286,7 +334,7 @@ export default function DocsPage() {
             </aside>
 
             {/* Main content */}
-            <div style={{ flex: 1, minWidth: 0 }}>
+            <div data-docs-content style={{ flex: 1, minWidth: 0 }}>
 
           {/* 1. Getting Started */}
           <SectionCard id="getting-started" title="Getting Started">
