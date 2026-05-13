@@ -1,11 +1,14 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { kibanaHeadersFromPayload, type AuthMode } from '@/lib/kibana-auth';
 
 interface WorkflowRequest {
   kibanaUrl: string;
-  username: string;
-  password: string;
+  authMode?: AuthMode;
+  username?: string;
+  password?: string;
+  apiKey?: string;
   action: 'list' | 'create';
   connectorIds?: Record<string, string>;
 }
@@ -16,14 +19,6 @@ interface KibanaWorkflow {
   description: string;
   enabled: boolean;
   connectorIds?: Record<string, string>;
-}
-
-function baseHeaders(username: string, password: string): Record<string, string> {
-  return {
-    'kbn-xsrf': 'true',
-    'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
-    'Content-Type': 'application/json',
-  };
 }
 
 async function listWorkflows(
@@ -186,14 +181,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   try {
     const body: WorkflowRequest = await request.json();
-    const { kibanaUrl, username, password, action, connectorIds } = body;
+    const { kibanaUrl, authMode = 'basic', username, password, apiKey, action, connectorIds } = body;
 
-    if (!kibanaUrl || !username || !password) {
+    if (!kibanaUrl || (authMode === 'api_key' ? !apiKey : !username || !password)) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const normalizedUrl = kibanaUrl.replace(/\/+$/, '');
-    const headers = baseHeaders(username, password);
+    const normalizedUrl = kibanaUrl.trim().replace(/\/+$/, '');
+    const headers = kibanaHeadersFromPayload({ authMode, username, password, apiKey });
 
     if (action === 'list') {
       const result = await listWorkflows(normalizedUrl, headers);

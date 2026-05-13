@@ -15,8 +15,10 @@ function LurelitWordmark() {
 
 export default function LoginPage() {
   const router = useRouter();
+  const [authMode, setAuthMode] = useState<'basic' | 'api_key'>('basic');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,7 +30,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ authMode, username, password, apiKey }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Login failed');
@@ -58,28 +60,74 @@ export default function LoginPage() {
           <p className="label" style={{ color: 'var(--teal-bright)', marginBottom: 20 }}>// Authenticate</p>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Username</label>
-              <input
-                className="input"
-                type="text"
-                value={username}
-                onChange={e => setUsername(e.target.value)}
-                placeholder="analyst"
-                autoFocus
-                autoComplete="username"
-              />
+              <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 8 }}>Authentication method</label>
+              <div className="row gap-2" style={{ flexWrap: 'wrap' }}>
+                {[
+                  { key: 'basic', label: 'Username / Password' },
+                  { key: 'api_key', label: 'API Key' },
+                ].map(option => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setAuthMode(option.key as 'basic' | 'api_key')}
+                    className="mono"
+                    style={{
+                      padding: '7px 10px',
+                      borderRadius: 3,
+                      fontSize: 9,
+                      letterSpacing: '0.1em',
+                      textTransform: 'uppercase',
+                      cursor: 'pointer',
+                      border: `1px solid ${authMode === option.key ? 'var(--teal)' : 'var(--border-strong)'}`,
+                      background: authMode === option.key ? 'rgba(0,191,179,0.10)' : 'transparent',
+                      color: authMode === option.key ? 'var(--teal-bright)' : 'var(--text-dim)',
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div>
-              <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Password</label>
-              <input
-                className="input"
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
-            </div>
+            {authMode === 'basic' ? (
+              <>
+                <div>
+                  <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Username</label>
+                  <input
+                    className="input"
+                    type="text"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    placeholder="analyst"
+                    autoFocus
+                    autoComplete="username"
+                  />
+                </div>
+                <div>
+                  <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Password</label>
+                  <input
+                    className="input"
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                  />
+                </div>
+              </>
+            ) : (
+              <div>
+                <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Elastic API Key</label>
+                <textarea
+                  className="input"
+                  value={apiKey}
+                  onChange={e => setApiKey(e.target.value)}
+                  placeholder="Paste an encoded Elastic API key"
+                  rows={3}
+                  autoFocus
+                  style={{ resize: 'vertical', minHeight: 96 }}
+                />
+              </div>
+            )}
 
             {error && (
               <div style={{ padding: 12, borderRadius: 3, border: '1px solid rgba(240,78,152,0.3)', background: 'rgba(240,78,152,0.06)' }}>
@@ -87,7 +135,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <button className="btn btn-primary" type="submit" disabled={loading || !username || !password} style={{ marginTop: 12, justifyContent: 'center', width: '100%' }}>
+            <button className="btn btn-primary" type="submit" disabled={loading || (authMode === 'api_key' ? !apiKey : !username || !password)} style={{ marginTop: 12, justifyContent: 'center', width: '100%' }}>
               {loading ? (
                 <>
                   <div className="animate-spin-slow" style={{ width: 14, height: 14, border: '2px solid rgba(5,2,16,0.3)', borderTopColor: 'var(--bg-deep)', borderRadius: '50%' }} />

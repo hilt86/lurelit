@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import { kibanaHeadersFromPayload, type AuthMode } from '@/lib/kibana-auth';
 
 interface CheckRequest {
   kibanaUrl: string;
-  username: string;
-  password: string;
+  authMode?: AuthMode;
+  username?: string;
+  password?: string;
+  apiKey?: string;
 }
 
 interface CheckResult {
@@ -15,29 +18,17 @@ interface CheckResult {
   errors: string[];
 }
 
-function authHeader(username: string, password: string): string {
-  return `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
-}
-
-function baseHeaders(username: string, password: string): Record<string, string> {
-  return {
-    'kbn-xsrf': 'true',
-    'Authorization': authHeader(username, password),
-    'Content-Type': 'application/json',
-  };
-}
-
 export async function POST(request: Request) {
   try {
     const body: CheckRequest = await request.json();
-    const { kibanaUrl, username, password } = body;
+    const { kibanaUrl, authMode = 'basic', username, password, apiKey } = body;
 
-    if (!kibanaUrl || !username || !password) {
+    if (!kibanaUrl || (authMode === 'api_key' ? !apiKey : !username || !password)) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
     const normalizedUrl = kibanaUrl.trim().replace(/\/+$/, '');
-    const headers = baseHeaders(username, password);
+    const headers = kibanaHeadersFromPayload({ authMode, username, password, apiKey });
     const result: CheckResult = {
       connected: false,
       version: null,

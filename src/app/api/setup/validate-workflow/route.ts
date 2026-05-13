@@ -1,27 +1,26 @@
 import { NextResponse } from 'next/server';
+import { kibanaHeadersFromPayload, type AuthMode } from '@/lib/kibana-auth';
 
 interface ValidateRequest {
   kibanaUrl: string;
-  username: string;
-  password: string;
+  authMode?: AuthMode;
+  username?: string;
+  password?: string;
+  apiKey?: string;
   workflowId: string;
 }
 
 export async function POST(request: Request) {
   try {
     const body: ValidateRequest = await request.json();
-    const { kibanaUrl, username, password, workflowId } = body;
+    const { kibanaUrl, authMode = 'basic', username, password, apiKey, workflowId } = body;
 
-    if (!kibanaUrl || !username || !password || !workflowId) {
+    if (!kibanaUrl || !workflowId || (authMode === 'api_key' ? !apiKey : !username || !password)) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const normalizedUrl = kibanaUrl.replace(/\/+$/, '');
-    const headers: Record<string, string> = {
-      'kbn-xsrf': 'true',
-      'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
-      'Content-Type': 'application/json',
-    };
+    const normalizedUrl = kibanaUrl.trim().replace(/\/+$/, '');
+    const headers = kibanaHeadersFromPayload({ authMode, username, password, apiKey });
 
     const res = await fetch(`${normalizedUrl}/api/workflows/workflow/${workflowId}`, { headers });
 

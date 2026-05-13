@@ -170,6 +170,15 @@ If the primary `data/` path isn't writable (e.g. permission issues), the app fal
 
 If env vars aren't set, configure via the setup wizard on first launch, or the Settings modal in the navigation bar. Settings are encrypted and persisted to `data/.smish-config.enc`.
 
+### Authentication Modes
+
+Lurelit supports two Kibana authentication methods:
+
+- **Username / password** — Best for self-managed or stateful Elastic deployments with native Kibana users.
+- **API key** — Recommended for Elastic Serverless. Use an encoded Elastic API key that can call Kibana Workflows, Agent Builder, Actions/connectors, and read the indices used by the hunt step.
+
+The setup wizard and login screen both support either method. API key sessions are stored in the same encrypted `smish_session` cookie as username/password sessions.
+
 ## Securing with HTTPS
 
 Lurelit runs on HTTP by default. For production deployments, TLS should be configured via a reverse proxy.

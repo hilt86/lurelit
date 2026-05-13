@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
+import { kibanaHeadersFromPayload, type AuthMode } from '@/lib/kibana-auth';
 
 interface ConnectorRequest {
   kibanaUrl: string;
-  username: string;
-  password: string;
+  authMode?: AuthMode;
+  username?: string;
+  password?: string;
+  apiKey?: string;
   action: 'check' | 'create';
   connectorType?: string;
   credentials?: {
@@ -39,14 +42,6 @@ const REQUIRED_CONNECTORS = [
 ];
 
 const INFERENCE_CONNECTOR_TYPES = new Set(['.inference', '.gen-ai', '.bedrock', '.gemini']);
-
-function baseHeaders(username: string, password: string): Record<string, string> {
-  return {
-    'kbn-xsrf': 'true',
-    'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
-    'Content-Type': 'application/json',
-  };
-}
 
 function maskHeaderValue(key: string, value: string): string {
   const lowerKey = key.toLowerCase();
@@ -232,14 +227,14 @@ async function createConnector(
 export async function POST(request: Request) {
   try {
     const body: ConnectorRequest = await request.json();
-    const { kibanaUrl, username, password, action, connectorType, credentials } = body;
+    const { kibanaUrl, authMode = 'basic', username, password, apiKey, action, connectorType, credentials } = body;
 
-    if (!kibanaUrl || !username || !password) {
+    if (!kibanaUrl || (authMode === 'api_key' ? !apiKey : !username || !password)) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const normalizedUrl = kibanaUrl.replace(/\/+$/, '');
-    const headers = baseHeaders(username, password);
+    const normalizedUrl = kibanaUrl.trim().replace(/\/+$/, '');
+    const headers = kibanaHeadersFromPayload({ authMode, username, password, apiKey });
 
     if (action === 'check') {
       const { statuses, inferenceConnectors, inferenceAvailable } = await checkConnectors(normalizedUrl, headers);

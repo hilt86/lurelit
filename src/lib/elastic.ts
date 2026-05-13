@@ -1,5 +1,6 @@
 import { loadGlobalConfig } from './config';
 import { getSession, getAuthHeader } from './session';
+import { baseKibanaHeaders } from './kibana-auth';
 
 async function getConfig() {
   return (await loadGlobalConfig()) ?? { kibanaUrl: '', workflowId: '' };
@@ -61,17 +62,20 @@ export async function testConnection(): Promise<{ ok: boolean; message: string }
 }
 
 export async function validateCredentials(kibanaUrl: string, username: string, password: string): Promise<{ ok: boolean; message: string }> {
+  return validateAuthHeader(kibanaUrl, `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`);
+}
+
+export async function validateApiKey(kibanaUrl: string, apiKey: string): Promise<{ ok: boolean; message: string }> {
+  return validateAuthHeader(kibanaUrl, `ApiKey ${apiKey.trim()}`);
+}
+
+async function validateAuthHeader(kibanaUrl: string, authHeader: string): Promise<{ ok: boolean; message: string }> {
   try {
     const res = await fetch(`${kibanaUrl}/api/status`, {
-      headers: {
-        'kbn-xsrf': 'true',
-        'x-elastic-internal-origin': 'kibana',
-        'elastic-api-version': '1',
-        'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
-      },
+      headers: baseKibanaHeaders(authHeader, false),
     });
     if (res.ok) return { ok: true, message: 'Authenticated' };
-    if (res.status === 401) return { ok: false, message: 'Invalid username or password' };
+    if (res.status === 401) return { ok: false, message: 'Invalid credentials' };
     return { ok: false, message: `Kibana returned ${res.status}` };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Connection failed';

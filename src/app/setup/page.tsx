@@ -252,8 +252,10 @@ export default function SetupPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
   const [kibanaUrl, setKibanaUrl] = useState('');
+  const [authMode, setAuthMode] = useState<'basic' | 'api_key'>('basic');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkResult, setCheckResult] = useState<CheckResult | null>(null);
@@ -319,6 +321,14 @@ export default function SetupPage() {
     }
   }, [adminKey]);
 
+  const authPayload = useCallback(() => ({
+    kibanaUrl,
+    authMode,
+    username,
+    password,
+    apiKey,
+  }), [kibanaUrl, authMode, username, password, apiKey]);
+
   const handleConnect = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -326,7 +336,7 @@ export default function SetupPage() {
       const res = await fetch('/api/setup/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kibanaUrl, username, password }),
+        body: JSON.stringify(authPayload()),
       });
       const data: CheckResult = await res.json();
       setCheckResult(data);
@@ -340,7 +350,7 @@ export default function SetupPage() {
     } finally {
       setLoading(false);
     }
-  }, [kibanaUrl, username, password]);
+  }, [authPayload]);
 
   const handleSave = useCallback(async () => {
     setLoading(true);
@@ -371,7 +381,7 @@ export default function SetupPage() {
       const res = await fetch('/api/setup/connectors', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kibanaUrl, username, password, action: 'check' }),
+        body: JSON.stringify({ ...authPayload(), action: 'check' }),
       });
       const data = await res.json();
       if (data.connectors) {
@@ -389,7 +399,7 @@ export default function SetupPage() {
     } finally {
       setConnectorChecking(false);
     }
-  }, [kibanaUrl, username, password]);
+  }, [authPayload]);
 
   const createConnector = useCallback(async (connectorId: string, apiKey: string) => {
     setCreatingConnector(connectorId);
@@ -399,7 +409,7 @@ export default function SetupPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          kibanaUrl, username, password,
+          ...authPayload(),
           action: 'create',
           connectorType: connectorId,
           credentials: { apiKey },
@@ -418,7 +428,7 @@ export default function SetupPage() {
     } finally {
       setCreatingConnector(null);
     }
-  }, [kibanaUrl, username, password]);
+  }, [authPayload]);
 
   const createAllMissing = useCallback(async () => {
     for (const group of CONNECTOR_GROUPS) {
@@ -440,7 +450,7 @@ export default function SetupPage() {
       const res = await fetch('/api/setup/workflows', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kibanaUrl, username, password, action: 'list' }),
+        body: JSON.stringify({ ...authPayload(), action: 'list' }),
       });
       const data = await res.json();
       if (data.workflows) {
@@ -463,7 +473,7 @@ export default function SetupPage() {
     } finally {
       setWorkflowsLoading(false);
     }
-  }, [kibanaUrl, username, password]);
+  }, [authPayload]);
 
   const handleCreateWorkflow = useCallback(async () => {
     setCreatingWorkflow(true);
@@ -485,7 +495,7 @@ export default function SetupPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          kibanaUrl, username, password,
+          ...authPayload(),
           action: 'create',
           connectorIds: connectorIdMap,
         }),
@@ -506,7 +516,7 @@ export default function SetupPage() {
     } finally {
       setCreatingWorkflow(false);
     }
-  }, [kibanaUrl, username, password, connectorStatuses, opusConnectorOverride, sonnetConnectorOverride]);
+  }, [authPayload, connectorStatuses, opusConnectorOverride, sonnetConnectorOverride]);
 
   const handleSelectWorkflow = useCallback(async () => {
     if (!selectedWorkflow) return;
@@ -517,7 +527,7 @@ export default function SetupPage() {
       const res = await fetch('/api/setup/validate-workflow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kibanaUrl, username, password, workflowId: selectedWorkflow }),
+        body: JSON.stringify({ ...authPayload(), workflowId: selectedWorkflow }),
       });
       const data = await res.json();
       if (data.valid) {
@@ -532,7 +542,7 @@ export default function SetupPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedWorkflow, kibanaUrl, username, password]);
+  }, [selectedWorkflow, authPayload]);
 
   const loadYamlPreview = useCallback(async () => {
     setYamlLoading(true);
@@ -704,27 +714,75 @@ export default function SetupPage() {
                 </p>
               </div>
               <div>
-                <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Username</label>
-                <input
-                  className="input"
-                  type="text"
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
-                  placeholder="elastic"
-                  autoComplete="username"
-                />
+                <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 8 }}>Authentication method</label>
+                <div className="row gap-2" style={{ flexWrap: 'wrap' }}>
+                  {[
+                    { key: 'basic', label: 'Username / Password' },
+                    { key: 'api_key', label: 'API Key (Serverless)' },
+                  ].map(option => (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => setAuthMode(option.key as 'basic' | 'api_key')}
+                      className="mono"
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: 3,
+                        fontSize: 10,
+                        letterSpacing: '0.12em',
+                        textTransform: 'uppercase',
+                        cursor: 'pointer',
+                        border: `1px solid ${authMode === option.key ? 'var(--teal)' : 'var(--border-strong)'}`,
+                        background: authMode === option.key ? 'rgba(0,191,179,0.10)' : 'transparent',
+                        color: authMode === option.key ? 'var(--teal-bright)' : 'var(--text-dim)',
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div>
-                <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Password</label>
-                <input
-                  className="input"
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                />
-              </div>
+              {authMode === 'basic' ? (
+                <>
+                  <div>
+                    <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Username</label>
+                    <input
+                      className="input"
+                      type="text"
+                      value={username}
+                      onChange={e => setUsername(e.target.value)}
+                      placeholder="elastic"
+                      autoComplete="username"
+                    />
+                  </div>
+                  <div>
+                    <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Password</label>
+                    <input
+                      className="input"
+                      type="password"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div>
+                  <label className="label-sm" style={{ display: 'block', color: 'var(--text-faint)', marginBottom: 6 }}>Elastic API Key</label>
+                  <textarea
+                    className="input"
+                    value={apiKey}
+                    onChange={e => setApiKey(e.target.value)}
+                    placeholder="Paste an encoded Elastic API key"
+                    rows={3}
+                    style={{ resize: 'vertical', minHeight: 96 }}
+                  />
+                  <p style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 6, lineHeight: 1.5 }}>
+                    Recommended for Elastic Serverless. The key must be able to call Kibana Workflows, Agent Builder, and Actions APIs.
+                  </p>
+                </div>
+              )}
 
               {error && (
                 <div style={{ padding: 12, borderRadius: 3, border: '1px solid rgba(240,78,152,0.3)', background: 'rgba(240,78,152,0.06)' }}>
@@ -735,7 +793,7 @@ export default function SetupPage() {
               <button
                 className="btn btn-primary"
                 onClick={handleConnect}
-                disabled={loading || !kibanaUrl || !username || !password}
+                disabled={loading || !kibanaUrl || (authMode === 'api_key' ? !apiKey : !username || !password)}
                 style={{ marginTop: 8, justifyContent: 'center', width: '100%' }}
               >
                 {loading ? <><Spinner /> Connecting…</> : 'Connect →'}

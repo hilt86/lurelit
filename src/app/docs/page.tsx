@@ -531,8 +531,12 @@ WORKFLOW_ID=your-workflow-id-from-kibana`}</CodeBlock>
 
             <SubHead>Authentication</SubHead>
             <Paragraph>
-              Lurelit uses Kibana native credentials. When you log in, your username and password are validated against the Kibana <InlineCode>/api/status</InlineCode> endpoint. On success, an encrypted session cookie (<InlineCode>smish_session</InlineCode>) is set with a 24-hour TTL. All subsequent API calls to Kibana use Basic auth derived from the stored session.
+              Lurelit supports both Kibana username/password credentials and Elastic API keys. Username/password is best for self-managed or stateful Elastic deployments. API key auth is recommended for Elastic Serverless environments.
             </Paragraph>
+            <BulletList items={[
+              <><strong style={{ color: 'var(--text)' }}>Username / password</strong> — Validated against Kibana&apos;s <InlineCode>/api/status</InlineCode> endpoint and stored in an encrypted 24-hour session cookie.</>,
+              <><strong style={{ color: 'var(--text)' }}>API key</strong> — Sent as <InlineCode>Authorization: ApiKey ...</InlineCode>. The key must be able to call Workflows, Agent Builder, Actions/connectors, and read the indices used by the hunt step.</>,
+            ]} />
           </SectionCard>
 
           {/* 5. Kibana Prerequisites */}
@@ -563,6 +567,11 @@ WORKFLOW_ID=your-workflow-id-from-kibana`}</CodeBlock>
             <CheckItem>Connector execution (<InlineCode>actions:execute</InlineCode>)</CheckItem>
             <CheckItem>Agent Builder access</CheckItem>
             <CheckItem>Read access to <InlineCode>logs-*</InlineCode>, <InlineCode>filebeat-*</InlineCode>, <InlineCode>.alerts-security.*</InlineCode> indices</CheckItem>
+
+            <SubHead>Elastic Serverless</SubHead>
+            <Paragraph>
+              For Elastic Serverless, use the Kibana/project endpoint and choose <strong style={{ color: 'var(--text)' }}>API Key</strong> in the setup wizard and login screen. Username/password remains supported for stateful Elastic deployments.
+            </Paragraph>
 
             <SubHead>Version Compatibility</SubHead>
             <div style={{ margin: '12px 0 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
