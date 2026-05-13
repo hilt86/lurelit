@@ -670,25 +670,47 @@ h1, h2, h3 { font-weight: 800; letter-spacing: -0.03em; }
     padding: 0 !important;
   }
 
-  .card {
+  .print-report .card {
     background: #ffffff !important;
     border-color: var(--border-strong) !important;
     box-shadow: none !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
+    overflow: visible !important;
+    break-inside: auto;
+    page-break-inside: auto;
   }
 
-  .card::before {
+  .print-report .card::before {
     display: none !important;
   }
 
-  .print-report pre {
-    max-height: none !important;
-    white-space: pre-wrap !important;
+  .verdict-report {
+    max-width: none !important;
+    margin-top: 24px !important;
+    gap: 14px !important;
   }
 
-  .print-report details {
+  .print-section {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .print-section > div:first-child,
+  .print-screenshot-card,
+  .print-report table,
+  .print-report tr,
+  .print-report li {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  .print-screenshot-card {
+    margin: 0 0 24px !important;
+  }
+
+  .print-report p,
+  .print-report li,
+  .print-report span,
+  .print-report div {
+    overflow-wrap: anywhere;
   }
 }

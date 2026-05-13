@@ -72,7 +72,7 @@ function SkippedSection({ label, reason }: { label: string; reason: string }) {
 
 function Section({ label, color, children }: { label: string; color: string; children: React.ReactNode }) {
   return (
-    <div className="card" style={{ overflow: 'hidden' }}>
+    <div className="card print-section" style={{ overflow: 'hidden' }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 24px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
@@ -84,7 +84,7 @@ function Section({ label, color, children }: { label: string; color: string; chi
 }
 
 export default function VerdictPanel({ output, status, enrichmentDetails }: VerdictPanelProps) {
-  if (status === 'failed') return <FailedView output={output} />;
+  if (status === 'failed') return <FailedView />;
   if ('classification_is_phishing' in output) return <ReportView output={output} enrichmentDetails={enrichmentDetails} />;
   return <GenericView output={output} />;
 }
@@ -102,7 +102,7 @@ function ReportView({ output, enrichmentDetails }: { output: Record<string, unkn
   const accent = isThreat ? 'var(--pink)' : 'var(--teal)';
 
   return (
-    <div style={{ width: '100%', maxWidth: 760, margin: '40px auto 0', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div className="verdict-report" style={{ width: '100%', maxWidth: 760, margin: '40px auto 0', display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Header */}
       <div className={`card animate-slide-up ${isThreat ? 'card-glow-pink card-accent-pink' : 'card-glow-teal card-accent-teal'}`}>
         <div style={{ padding: 32, display: 'flex', gap: 24, alignItems: 'flex-start' }}>
@@ -273,7 +273,7 @@ function ReportView({ output, enrichmentDetails }: { output: Record<string, unkn
       )}
 
       {/* Raw */}
-      <details className="animate-slide-up stagger-4" style={{ paddingBottom: 8 }}>
+      <details className="animate-slide-up stagger-4 no-print" style={{ paddingBottom: 8 }}>
         <summary className="label-sm" style={{ color: 'var(--text-faint)', cursor: 'pointer', padding: '8px 0' }}>View Raw Output</summary>
         <pre className="mono" style={{ fontSize: 12, lineHeight: 1.6, padding: 20, overflow: 'auto', maxHeight: 300, borderRadius: 3, color: 'var(--text-dim)', background: 'var(--bg-surface)', border: '1px solid var(--border)', marginTop: 8 }}>
           {JSON.stringify(output, null, 2)}
@@ -343,7 +343,7 @@ function MaliciousSection({ indicators }: { indicators: Indicator[] }) {
   );
 }
 
-function FailedView({ output }: { output: Record<string, unknown> }) {
+function FailedView() {
   return (
     <div style={{ maxWidth: 760, margin: '40px auto 0' }} className="animate-slide-up">
       <div className="card card-glow-pink card-accent-pink" style={{ padding: 32 }}>
@@ -368,7 +368,7 @@ function GenericView({ output }: { output: Record<string, unknown> }) {
     <div style={{ maxWidth: 760, margin: '40px auto 0' }} className="animate-slide-up">
       <div className="card card-glow-teal card-accent-teal" style={{ padding: 32 }}>
         {summary && <p style={{ fontSize: 15, color: 'var(--text-dim)', lineHeight: 1.65 }}>{summary}</p>}
-        <details style={{ marginTop: 16 }}>
+        <details className="no-print" style={{ marginTop: 16 }}>
           <summary className="label-sm" style={{ color: 'var(--text-faint)', cursor: 'pointer' }}>View Raw Output</summary>
           <pre className="mono" style={{ fontSize: 12, lineHeight: 1.6, padding: 16, overflow: 'auto', maxHeight: 300, borderRadius: 3, color: 'var(--text-dim)', background: 'var(--bg-surface)', border: '1px solid var(--border)', marginTop: 8 }}>
             {JSON.stringify(output, null, 2)}
