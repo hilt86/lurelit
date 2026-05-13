@@ -52,6 +52,60 @@ const STATUS_STYLES: Record<string, { color: string; bg: string; border: string;
   cancelled: { color: 'var(--text-faint)', bg: 'var(--bg-surface)', border: 'var(--border)', label: 'Cancelled' },
 };
 
+function HistoryThumbnail({ executionId }: { executionId: string }) {
+  const [src, setSrc] = useState<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    try {
+      const stored = localStorage.getItem(`screenshot:${executionId}`);
+      if (stored) {
+        setSrc(stored);
+        return;
+      }
+    } catch {}
+
+    fetch(`/api/thumbnail/${executionId}`)
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (!cancelled) setSrc(data?.screenshot ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setSrc(null);
+      });
+
+    return () => { cancelled = true; };
+  }, [executionId]);
+
+  return (
+    <div
+      aria-label={src ? 'Screenshot thumbnail' : 'No screenshot thumbnail available'}
+      style={{
+        width: 42, height: 32, borderRadius: 3, overflow: 'hidden',
+        background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        boxShadow: src ? '0 0 10px rgba(0,191,179,0.12)' : 'none',
+      }}
+    >
+      {src ? (
+        <img
+          src={src}
+          alt=""
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+        />
+      ) : (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ color: 'var(--text-faint)', opacity: src === undefined ? 0.35 : 0.55 }}>
+          <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.1" />
+          <circle cx="6" cy="7" r="1.2" stroke="currentColor" strokeWidth="1" />
+          <path d="M2.5 11l3-2.5 2.2 1.8L10.5 7l3 4" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </div>
+  );
+}
+
 function HistoryContent() {
   const searchParams = useSearchParams();
   const initialFilter = (searchParams.get('filter') as Filter) || 'completed';
@@ -219,7 +273,7 @@ function HistoryContent() {
                     key={exec.id}
                     href={`/results/${exec.id}`}
                     style={{
-                      display: 'grid', gridTemplateColumns: '32px 28px 1fr 120px 120px 80px', gap: 0, padding: '14px 20px',
+                      display: 'grid', gridTemplateColumns: '32px 28px 56px minmax(0, 1fr) 120px 120px 80px', gap: 0, padding: '14px 20px',
                       borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none',
                       cursor: 'pointer', transition: 'all 0.2s', alignItems: 'center', textDecoration: 'none',
                       color: 'inherit',
@@ -251,6 +305,8 @@ function HistoryContent() {
                         )}
                       </div>
                     ) : <div />}
+
+                    <HistoryThumbnail executionId={exec.id} />
 
                     <div style={{ minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
