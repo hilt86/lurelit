@@ -692,22 +692,93 @@ h1, h2, h3 { font-weight: 800; letter-spacing: -0.03em; }
 
   .verdict-report > * {
     margin-bottom: 14px !important;
+  }
+
+  .verdict-report > .card:not(.print-section) {
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 6px !important;
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
   .print-section {
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    margin: 22px 0 0 !important;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .print-section-header {
+    padding: 0 0 8px !important;
+    border-bottom: 2px solid var(--border) !important;
+    break-after: avoid-page;
+    page-break-after: avoid;
+  }
+
+  .print-section-body {
+    padding: 12px 0 0 !important;
+  }
+
+  .print-section-header,
+  .print-screenshot-card,
+  .print-report tr {
     break-inside: avoid;
     page-break-inside: avoid;
   }
 
-  .print-section > div:first-child,
-  .print-screenshot-card,
-  .print-report table,
-  .print-report tr,
+  .print-report h1,
+  .print-report h2,
+  .print-report h3 {
+    break-after: avoid-page;
+    page-break-after: avoid;
+  }
+
+  .print-report h1 + *,
+  .print-report h2 + *,
+  .print-report h3 + * {
+    break-before: avoid-page;
+    page-break-before: avoid;
+  }
+
+  .print-report table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .markdown-table-wrap {
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .print-report thead {
+    display: table-header-group;
+  }
+
+  .print-report th,
+  .print-report td {
+    border: 1px solid var(--border) !important;
+  }
+
+  .markdown-code-block,
+  .markdown-blockquote,
+  .attack-chain-timeline {
+    overflow: visible !important;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+
+  .print-report p,
   .print-report li {
-    break-inside: avoid;
-    page-break-inside: avoid;
+    orphans: 3;
+    widows: 3;
   }
 
   .print-screenshot-card {

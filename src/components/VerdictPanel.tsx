@@ -74,11 +74,11 @@ function Section({ label, color, children }: { label: string; color: string; chi
   return (
     <div className="card print-section" style={{ overflow: 'hidden' }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${color}, transparent)` }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 24px', borderBottom: '1px solid var(--border)' }}>
+      <div className="print-section-header" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 24px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: color }} />
         <span className="label" style={{ color, fontSize: 11 }}>{label}</span>
       </div>
-      <div style={{ padding: 24 }}>{children}</div>
+      <div className="print-section-body" style={{ padding: 24 }}>{children}</div>
     </div>
   );
 }

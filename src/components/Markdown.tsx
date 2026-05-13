@@ -114,7 +114,7 @@ export default function Markdown({ children }: { children: string }) {
               return <AttackChainTimeline text={text} />;
             }
             return (
-              <pre className="mono" style={{
+              <pre className="mono markdown-code-block" style={{
                 fontSize: 12, lineHeight: 1.65, padding: 20, borderRadius: 3,
                 color: 'var(--text-dim)', background: 'var(--bg-surface)', border: '1px solid var(--border)',
                 overflow: 'auto', margin: '14px 0',
@@ -134,7 +134,7 @@ export default function Markdown({ children }: { children: string }) {
           );
         },
         table: ({ children }) => (
-          <div style={{
+          <div className="markdown-table-wrap" style={{
             overflowX: 'auto', margin: '18px 0', borderRadius: 3,
             border: '1px solid var(--border-strong)',
             background: 'var(--bg-panel)',
@@ -169,7 +169,7 @@ export default function Markdown({ children }: { children: string }) {
           <hr style={{ border: 'none', height: 1, background: 'linear-gradient(90deg, transparent, var(--border-strong), transparent)', margin: '28px 0' }} />
         ),
         blockquote: ({ children }) => (
-          <blockquote style={{
+          <blockquote className="markdown-blockquote" style={{
             borderLeft: '3px solid var(--teal)', margin: '16px 0',
             background: 'rgba(0,191,179,0.03)', padding: '14px 18px',
             borderRadius: '0 3px 3px 0',
@@ -213,11 +213,11 @@ function AttackChainTimeline({ text }: { text: string }) {
   if (current) events.push({ ...current, isAction: current.details.some(d => d.includes('➜') || d.includes('→')) });
 
   if (events.length === 0) {
-    return <pre className="mono" style={{ fontSize: 12, lineHeight: 1.65, padding: 20, borderRadius: 3, color: 'var(--text-dim)', background: 'var(--bg-surface)', border: '1px solid var(--border)', overflow: 'auto', margin: '14px 0', whiteSpace: 'pre-wrap' }}><code>{text}</code></pre>;
+    return <pre className="mono markdown-code-block" style={{ fontSize: 12, lineHeight: 1.65, padding: 20, borderRadius: 3, color: 'var(--text-dim)', background: 'var(--bg-surface)', border: '1px solid var(--border)', overflow: 'auto', margin: '14px 0', whiteSpace: 'pre-wrap' }}><code>{text}</code></pre>;
   }
 
   return (
-    <div style={{ margin: '20px 0', borderRadius: 3, border: '1px solid var(--border-strong)', background: 'var(--bg-panel)', overflow: 'hidden' }}>
+    <div className="attack-chain-timeline" style={{ margin: '20px 0', borderRadius: 3, border: '1px solid var(--border-strong)', background: 'var(--bg-panel)', overflow: 'hidden' }}>
       <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <circle cx="8" cy="8" r="6" stroke="var(--pink)" strokeWidth="1.5" />
