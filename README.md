@@ -179,6 +179,8 @@ Lurelit supports two Kibana authentication methods:
 
 The setup wizard and login screen both support either method. API key sessions are stored in the same encrypted `smish_session` cookie as username/password sessions.
 
+When logging in with an API key, Lurelit asks for a **display name**. That name is used in the nav bar, "Submitted by" labels, history rows, and Top Analysts metrics. Lurelit will try to resolve the current Kibana user, but the entered display name wins because API key principals in Serverless can otherwise appear as numeric IDs or generic API-key users.
+
 ## Securing with HTTPS
 
 Lurelit runs on HTTP by default. For production deployments, TLS should be configured via a reverse proxy.

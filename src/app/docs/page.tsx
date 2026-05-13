@@ -537,6 +537,9 @@ WORKFLOW_ID=your-workflow-id-from-kibana`}</CodeBlock>
               <><strong style={{ color: 'var(--text)' }}>Username / password</strong> — Validated against Kibana&apos;s <InlineCode>/api/status</InlineCode> endpoint and stored in an encrypted 24-hour session cookie.</>,
               <><strong style={{ color: 'var(--text)' }}>API key</strong> — Sent as <InlineCode>Authorization: ApiKey ...</InlineCode>. The key must be able to call Workflows, Agent Builder, Actions/connectors, and read the indices used by the hunt step.</>,
             ]} />
+            <Paragraph>
+              When using API key auth, the login screen asks for a <strong style={{ color: 'var(--text)' }}>display name</strong>. This is the name shown in the nav bar, history rows, &quot;Submitted by&quot; labels, and Top Analysts metrics. Lurelit attempts to resolve the current Kibana user, but the entered display name takes priority because Serverless API key executions can otherwise appear as numeric principals or generic API-key users.
+            </Paragraph>
           </SectionCard>
 
           {/* 5. Kibana Prerequisites */}
@@ -571,6 +574,9 @@ WORKFLOW_ID=your-workflow-id-from-kibana`}</CodeBlock>
             <SubHead>Elastic Serverless</SubHead>
             <Paragraph>
               For Elastic Serverless, use the Kibana/project endpoint and choose <strong style={{ color: 'var(--text)' }}>API Key</strong> in the setup wizard and login screen. Username/password remains supported for stateful Elastic deployments.
+            </Paragraph>
+            <Paragraph>
+              If the prerequisite checker reports <strong style={{ color: 'var(--text)' }}>Needs access</strong>, the API key is valid but likely lacks Kibana privileges for Workflows, Agent Builder, Actions/connectors, or the indices used by the hunt step.
             </Paragraph>
 
             <SubHead>Version Compatibility</SubHead>
