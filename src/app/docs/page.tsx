@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
 
@@ -132,11 +132,39 @@ function AlertBox({ type, children }: { type: 'info' | 'warning' | 'tip'; childr
 
 export default function DocsPage() {
   const [search, setSearch] = useState('');
-  const filteredSections = useMemo(() => {
+  const [sectionIndex, setSectionIndex] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const index: Record<string, string> = {};
+    for (const section of sections) {
+      const el = document.getElementById(section.id);
+      index[section.id] = (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
+    }
+    setSectionIndex(index);
+  }, []);
+
+  const searchResults = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return sections;
-    return sections.filter(s => `${s.label} ${s.id}`.toLowerCase().includes(q));
-  }, [search]);
+    if (!q) return [];
+    return sections
+      .map((s, i) => {
+        const title = s.label.toLowerCase();
+        const body = (sectionIndex[s.id] ?? '').toLowerCase();
+        const haystack = `${title} ${s.id} ${body}`;
+        if (!haystack.includes(q)) return null;
+        const titleHit = title.includes(q) ? 100 : 0;
+        const idHit = s.id.includes(q) ? 50 : 0;
+        const bodyIndex = body.indexOf(q);
+        const bodyHit = bodyIndex >= 0 ? 20 : 0;
+        const score = titleHit + idHit + bodyHit;
+        const source = sectionIndex[s.id] || s.label;
+        const idx = Math.max(0, source.toLowerCase().indexOf(q));
+        const start = Math.max(0, idx - 55);
+        const snippet = source.slice(start, start + 150).trim();
+        return { ...s, index: i, score, snippet: `${start > 0 ? '…' : ''}${snippet}${start + 150 < source.length ? '…' : ''}` };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b!.score - a!.score || a!.index - b!.index) as Array<{ id: string; label: string; index: number; score: number; snippet: string }>;
+  }, [search, sectionIndex]);
 
   return (
     <>
@@ -185,9 +213,30 @@ export default function DocsPage() {
                 }}
               />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {filteredSections.length > 0 ? filteredSections.map((s) => {
-                  const i = sections.findIndex(section => section.id === s.id);
-                  return (
+                {search.trim() ? (
+                  searchResults.length > 0 ? searchResults.map((s) => (
+                    <a
+                      key={s.id}
+                      href={`#${s.id}`}
+                      style={{
+                        display: 'block',
+                        padding: '9px 10px',
+                        borderRadius: 3,
+                        textDecoration: 'none',
+                        border: '1px solid var(--border)',
+                        background: 'rgba(0,191,179,0.04)',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <span className="mono" style={{ display: 'block', fontSize: 10, color: 'var(--teal-bright)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+                        {String(s.index + 1).padStart(2, '0')} · {s.label}
+                      </span>
+                      <span style={{ display: 'block', fontSize: 11, lineHeight: 1.45, color: 'var(--text-faint)' }}>{s.snippet}</span>
+                    </a>
+                  )) : (
+                    <span className="mono" style={{ fontSize: 11, color: 'var(--text-faint)', padding: '8px 10px' }}>No matches</span>
+                  )
+                ) : sections.map((s, i) => (
                   <a
                     key={s.id}
                     href={`#${s.id}`}
@@ -204,9 +253,7 @@ export default function DocsPage() {
                     <span style={{ color: 'var(--teal)', fontSize: 10, minWidth: 16 }}>{String(i + 1).padStart(2, '0')}</span>
                     {s.label}
                   </a>
-                );}) : (
-                  <span className="mono" style={{ fontSize: 11, color: 'var(--text-faint)', padding: '8px 10px' }}>No matches</span>
-                )}
+                ))}
               </div>
             </aside>
 
