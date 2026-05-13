@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import Nav from '@/components/Nav';
 import Footer from '@/components/Footer';
@@ -61,7 +62,9 @@ function HistoryThumbnail({ executionId }: { executionId: string }) {
     try {
       const stored = localStorage.getItem(`screenshot:${executionId}`);
       if (stored) {
-        setSrc(stored);
+        Promise.resolve().then(() => {
+          if (!cancelled) setSrc(stored);
+        });
         return;
       }
     } catch {}
@@ -89,11 +92,13 @@ function HistoryThumbnail({ executionId }: { executionId: string }) {
       }}
     >
       {src ? (
-        <img
+        <Image
           src={src}
           alt=""
-          loading="lazy"
+          width={42}
+          height={32}
           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          unoptimized
         />
       ) : (
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ color: 'var(--text-faint)', opacity: src === undefined ? 0.35 : 0.55 }}>
@@ -148,7 +153,10 @@ function HistoryContent() {
     }
   };
 
-  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+  useEffect(() => {
+    const id = window.setTimeout(fetchHistory, 0);
+    return () => window.clearTimeout(id);
+  }, [fetchHistory]);
 
   useEffect(() => {
     const users = [...new Set(executions.map(e => e.executedBy).filter(Boolean))] as string[];
@@ -202,7 +210,7 @@ function HistoryContent() {
         <div style={{ width: '100%', maxWidth: 980, margin: '0 auto', padding: '0 32px' }}>
           {/* Header */}
           <div className="row gap-4 animate-fade-in" style={{ marginBottom: 8, paddingTop: 40 }}>
-            <span className="label" style={{ color: 'var(--teal-bright)' }}>// Catalogue</span>
+            <span className="label" style={{ color: 'var(--teal-bright)' }}>{'// Catalogue'}</span>
             <div className="divider" />
             <span className="mono" style={{ fontSize: 11, color: 'var(--text-faint)', letterSpacing: '0.14em' }}>last 30 days</span>
           </div>
