@@ -23,6 +23,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Kibana URL not configured. An admin must set up the connection first.' }, { status: 503 });
     }
 
+    // Guard: detect localhost Kibana URL when running on a serverless/cloud platform
+    // where localhost can never reach the user's actual Kibana
+    const isLocalhostUrl = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|host\.docker\.internal)(:\d+)?(\/|$)/i.test(config.kibanaUrl);
+    const isServerless = Boolean(process.env.VERCEL || process.env.NETLIFY || process.env.CF_PAGES || process.env.AWS_LAMBDA_FUNCTION_NAME);
+    if (isLocalhostUrl && isServerless) {
+      const fromEnv = Boolean(process.env.KIBANA_URL);
+      const detail = fromEnv
+        ? `The KIBANA_URL environment variable in this deployment is set to "${config.kibanaUrl}". Remove or update it to your real Kibana endpoint and redeploy.`
+        : `The saved Kibana URL is "${config.kibanaUrl}". Re-run the setup wizard with your real Kibana endpoint.`;
+      return NextResponse.json({
+        error: `Kibana URL points to localhost, which is unreachable from this serverless deployment. ${detail}`,
+      }, { status: 502 });
+    }
+
     const result = authMode === 'api_key'
       ? await validateApiKey(config.kibanaUrl, apiKey!)
       : await validateCredentials(config.kibanaUrl, username!, password!);
