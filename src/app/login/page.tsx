@@ -33,7 +33,13 @@ export default function LoginPage() {
         body: JSON.stringify({ authMode, username, password, apiKey }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Login failed');
+      if (!res.ok) {
+        if (data.needsSetup) {
+          router.push('/setup');
+          return;
+        }
+        throw new Error(data.error || 'Login failed');
+      }
       router.push('/');
       router.refresh();
     } catch (err) {

@@ -20,7 +20,13 @@ export async function POST(request: NextRequest) {
 
     const config = await loadGlobalConfig();
     if (!config?.kibanaUrl) {
-      return NextResponse.json({ error: 'Kibana URL not configured. An admin must set up the connection first.' }, { status: 503 });
+      // Clear the stale "configured" cookie so middleware will redirect back to /setup
+      const response = NextResponse.json({
+        error: 'No Kibana configuration found. Re-run the setup wizard at /setup to configure your connection.',
+        needsSetup: true,
+      }, { status: 503 });
+      response.cookies.set('smish_configured', '', { maxAge: 0, path: '/' });
+      return response;
     }
 
     // Guard: detect localhost Kibana URL when running on a serverless/cloud platform
