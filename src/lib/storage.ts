@@ -70,11 +70,18 @@ class FileStorage implements StorageProvider {
 
 class RedisStorage implements StorageProvider {
   private redis: import('@upstash/redis').Redis | null = null;
+  private url: string;
+  private token: string;
+
+  constructor(url: string, token: string) {
+    this.url = url;
+    this.token = token;
+  }
 
   private async getClient() {
     if (!this.redis) {
       const { Redis } = await import('@upstash/redis');
-      this.redis = Redis.fromEnv();
+      this.redis = new Redis({ url: this.url, token: this.token });
     }
     return this.redis;
   }
@@ -96,14 +103,58 @@ class RedisStorage implements StorageProvider {
   }
 }
 
+// Find Upstash/KV credentials regardless of which env var prefix the user's integration uses.
+// Vercel marketplace integrations may use plain UPSTASH_*, KV_* (legacy), or prefixed variants
+// like <DBNAME>_UPSTASH_REDIS_REST_URL.
+function findRedisCredentials(): { url: string; token: string; source: string } | null {
+  const env = process.env;
+
+  // Direct, unprefixed pairs (most common)
+  if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
+    return { url: env.UPSTASH_REDIS_REST_URL, token: env.UPSTASH_REDIS_REST_TOKEN, source: 'UPSTASH_REDIS_REST_*' };
+  }
+  if (env.KV_REST_API_URL && env.KV_REST_API_TOKEN) {
+    return { url: env.KV_REST_API_URL, token: env.KV_REST_API_TOKEN, source: 'KV_REST_API_*' };
+  }
+
+  // Prefixed variants (e.g. MYDB_UPSTASH_REDIS_REST_URL + MYDB_UPSTASH_REDIS_REST_TOKEN)
+  for (const key of Object.keys(env)) {
+    if (key.endsWith('_UPSTASH_REDIS_REST_URL')) {
+      const prefix = key.replace(/_UPSTASH_REDIS_REST_URL$/, '');
+      const tokenKey = `${prefix}_UPSTASH_REDIS_REST_TOKEN`;
+      if (env[tokenKey]) {
+        return { url: env[key]!, token: env[tokenKey]!, source: `${prefix}_UPSTASH_REDIS_REST_*` };
+      }
+    }
+    if (key.endsWith('_KV_REST_API_URL')) {
+      const prefix = key.replace(/_KV_REST_API_URL$/, '');
+      const tokenKey = `${prefix}_KV_REST_API_TOKEN`;
+      if (env[tokenKey]) {
+        return { url: env[key]!, token: env[tokenKey]!, source: `${prefix}_KV_REST_API_*` };
+      }
+    }
+  }
+
+  return null;
+}
+
+export function describeStorage(): { kind: 'redis' | 'file'; source?: string } {
+  const creds = findRedisCredentials();
+  if (creds) return { kind: 'redis', source: creds.source };
+  return { kind: 'file' };
+}
+
 let _storage: StorageProvider | null = null;
 
 export function getStorage(): StorageProvider {
   if (_storage) return _storage;
 
-  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
-    _storage = new RedisStorage();
+  const creds = findRedisCredentials();
+  if (creds) {
+    console.log(`[Lurelit] Using Redis storage from env: ${creds.source}`);
+    _storage = new RedisStorage(creds.url, creds.token);
   } else {
+    console.log('[Lurelit] Using filesystem storage (no Upstash/KV env vars detected)');
     _storage = new FileStorage();
   }
 
