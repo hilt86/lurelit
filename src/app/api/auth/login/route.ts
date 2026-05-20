@@ -3,6 +3,7 @@ import { resolveCurrentUser, validateApiKey, validateCredentials } from '@/lib/e
 import { createApiKeySession, createSession } from '@/lib/session';
 import { loadGlobalConfig } from '@/lib/config';
 import { buildApiKeyAuthHeader } from '@/lib/kibana-auth';
+import { shouldUseSecureCookies } from '@/lib/cookies';
 import type { AuthMode } from '@/lib/kibana-auth';
 
 export async function POST(request: NextRequest) {
@@ -50,6 +51,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.message }, { status: 401 });
     }
 
+    const secureCookie = shouldUseSecureCookies(request);
     const cleanDisplayName = username?.trim();
     let displayUsername = cleanDisplayName;
     if (authMode === 'api_key') {
@@ -58,9 +60,9 @@ export async function POST(request: NextRequest) {
         ? resolvedUser
         : null;
       displayUsername = cleanDisplayName || meaningfulResolvedUser || 'api-key-user';
-      await createApiKeySession(apiKey!, displayUsername);
+      await createApiKeySession(apiKey!, displayUsername, { secure: secureCookie });
     } else {
-      await createSession(username!, password!);
+      await createSession(username!, password!, { secure: secureCookie });
     }
 
     return NextResponse.json({ ok: true, username: displayUsername });

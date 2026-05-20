@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
-import { readFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { randomBytes } from 'crypto';
 import { join } from 'path';
 import { getStorage } from '@/lib/storage';
+import { shouldUseSecureCookies } from '@/lib/cookies';
 
 const KEY_FILE = join(process.cwd(), '.lurelit-admin-key');
 const FALLBACK_KEY_FILE = join('/tmp', '.lurelit-admin-key');
@@ -34,12 +35,10 @@ export async function getSetupSecret(): Promise<string> {
 
   const generated = randomBytes(16).toString('hex');
   try {
-    const fs = require('fs');
-    fs.writeFileSync(KEY_FILE, generated, 'utf8');
+    writeFileSync(KEY_FILE, generated, 'utf8');
   } catch {
     try {
-      const fs = require('fs');
-      fs.writeFileSync(FALLBACK_KEY_FILE, generated, 'utf8');
+      writeFileSync(FALLBACK_KEY_FILE, generated, 'utf8');
     } catch {
       // Cannot persist — will be regenerated on restart
     }
@@ -59,7 +58,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({ valid: true });
     response.cookies.set('setup_auth', secret, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: shouldUseSecureCookies(request),
       sameSite: 'lax',
       maxAge: 3600,
       path: '/',
