@@ -1,6 +1,7 @@
 import { randomBytes, createCipheriv, createDecipheriv, scryptSync } from 'crypto';
 import { cookies } from 'next/headers';
 import type { AuthMode } from './kibana-auth';
+import { shouldUseSecureCookies } from './cookies';
 
 export type UserSession =
   | {
@@ -19,6 +20,10 @@ export type UserSession =
 const SESSION_COOKIE = 'smish_session';
 const SALT = 'smish-session-v1';
 const MAX_AGE = 60 * 60 * 24; // 24 hours
+
+interface SessionCookieOptions {
+  secure?: boolean;
+}
 
 function getKey(): Buffer {
   const secret = process.env.CONFIG_SECRET || 'smish-analyzer-default-key-change-me';
@@ -45,7 +50,7 @@ function decrypt(data: string): string {
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 }
 
-export async function createSession(username: string, password: string): Promise<void> {
+export async function createSession(username: string, password: string, options: SessionCookieOptions = {}): Promise<void> {
   const session: UserSession = {
     authMode: 'basic',
     username,
@@ -57,14 +62,14 @@ export async function createSession(username: string, password: string): Promise
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, encrypted, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: options.secure ?? shouldUseSecureCookies(),
     sameSite: 'lax',
     maxAge: MAX_AGE,
     path: '/',
   });
 }
 
-export async function createApiKeySession(apiKey: string, username = 'api-key-user'): Promise<void> {
+export async function createApiKeySession(apiKey: string, username = 'api-key-user', options: SessionCookieOptions = {}): Promise<void> {
   const session: UserSession = {
     authMode: 'api_key',
     username,
@@ -76,7 +81,7 @@ export async function createApiKeySession(apiKey: string, username = 'api-key-us
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, encrypted, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: options.secure ?? shouldUseSecureCookies(),
     sameSite: 'lax',
     maxAge: MAX_AGE,
     path: '/',

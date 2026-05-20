@@ -3,6 +3,7 @@ import { readFileSync, existsSync } from 'fs';
 import { randomBytes } from 'crypto';
 import { join } from 'path';
 import { getStorage } from '@/lib/storage';
+import { shouldUseSecureCookies } from '@/lib/cookies';
 
 const KEY_FILE = join(process.cwd(), '.lurelit-admin-key');
 const FALLBACK_KEY_FILE = join('/tmp', '.lurelit-admin-key');
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
     const response = NextResponse.json({ valid: true });
     response.cookies.set('setup_auth', secret, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: shouldUseSecureCookies(request),
       sameSite: 'lax',
       maxAge: 3600,
       path: '/',
