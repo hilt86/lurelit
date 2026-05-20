@@ -2,13 +2,14 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
 
   try {
-    const crypto = require('crypto');
-
+    // Keep Node imports scoped inside the runtime guard; static imports trigger Edge-runtime warnings.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const crypto = require('crypto') as typeof import('crypto');
     let key = process.env.SETUP_SECRET || '';
 
     if (!key) {
-      if (process.env.UPSTASH_REDIS_REST_URL) {
-        const { getStorage } = await import('./lib/storage');
+      const { describeStorage, getStorage } = await import('./lib/storage');
+      if (describeStorage().kind === 'redis') {
         const storage = getStorage();
         const stored = await storage.get('admin-key');
         if (stored) {
@@ -18,8 +19,10 @@ export async function register() {
           await storage.set('admin-key', key);
         }
       } else {
-        const fs = require('fs');
-        const path = require('path');
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const fs = require('fs') as typeof import('fs');
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const path = require('path') as typeof import('path');
         const cwd = String(process.env.PWD || process.env.CWD || '/app');
 
         const primaryKeyFile = path.join(cwd, '.lurelit-admin-key');
