@@ -4,6 +4,7 @@ import { createApiKeySession, createSession } from '@/lib/session';
 import { loadGlobalConfig } from '@/lib/config';
 import { buildApiKeyAuthHeader } from '@/lib/kibana-auth';
 import { shouldUseSecureCookies } from '@/lib/cookies';
+import { isServerlessPlatform } from '@/lib/deployment';
 import type { AuthMode } from '@/lib/kibana-auth';
 
 export async function POST(request: NextRequest) {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     // Guard: detect localhost Kibana URL when running on a serverless/cloud platform
     // where localhost can never reach the user's actual Kibana
     const isLocalhostUrl = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|host\.docker\.internal)(:\d+)?(\/|$)/i.test(config.kibanaUrl);
-    const isServerless = Boolean(process.env.VERCEL || process.env.NETLIFY || process.env.CF_PAGES || process.env.AWS_LAMBDA_FUNCTION_NAME);
+    const isServerless = isServerlessPlatform();
     if (isLocalhostUrl && isServerless) {
       const fromEnv = Boolean(process.env.KIBANA_URL);
       const detail = fromEnv

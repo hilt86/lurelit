@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { readFileSync, existsSync, writeFileSync } from 'fs';
 import { randomBytes } from 'crypto';
 import { join } from 'path';
-import { getStorage } from '@/lib/storage';
+import { describeStorage, getStorage } from '@/lib/storage';
 import { shouldUseSecureCookies } from '@/lib/cookies';
 
 const KEY_FILE = join(process.cwd(), '.lurelit-admin-key');
@@ -13,7 +13,7 @@ export async function getSetupSecret(): Promise<string> {
     return process.env.SETUP_SECRET;
   }
 
-  if (process.env.UPSTASH_REDIS_REST_URL) {
+  if (describeStorage().kind === 'redis') {
     const storage = getStorage();
     const stored = await storage.get('admin-key');
     if (stored) return stored;

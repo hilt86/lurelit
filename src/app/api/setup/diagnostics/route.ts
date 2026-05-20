@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
+import { getDeploymentPlatform } from '@/lib/deployment';
 import { describeStorage, getStorage } from '@/lib/storage';
 
 export async function GET() {
   const storage = describeStorage();
-  const platform = process.env.VERCEL ? 'vercel'
-    : process.env.NETLIFY ? 'netlify'
-    : process.env.CF_PAGES ? 'cloudflare-pages'
-    : process.env.AWS_LAMBDA_FUNCTION_NAME ? 'aws-lambda'
-    : 'self-hosted';
+  const platform = getDeploymentPlatform();
 
   // Best-effort ping to confirm the configured storage actually works
   let storageOk: boolean | null = null;

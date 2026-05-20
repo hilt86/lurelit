@@ -467,7 +467,7 @@ volumes:
             <SubHead>Manual Setup</SubHead>
             <NumberedList items={[
               <>Import the Lurelit repository in Vercel (Framework: Next.js, auto-detected)</>,
-              <>Add <strong style={{ color: 'var(--text)' }}>Upstash Redis</strong> from the Vercel Marketplace — this auto-sets <InlineCode>UPSTASH_REDIS_REST_URL</InlineCode> and <InlineCode>UPSTASH_REDIS_REST_TOKEN</InlineCode></>,
+              <>Add <strong style={{ color: 'var(--text)' }}>Upstash Redis</strong> from the Vercel Marketplace — this auto-sets <InlineCode>UPSTASH_REDIS_REST_URL</InlineCode>/<InlineCode>UPSTASH_REDIS_REST_TOKEN</InlineCode>, <InlineCode>KV_REST_API_URL</InlineCode>/<InlineCode>KV_REST_API_TOKEN</InlineCode>, or prefixed variants</>,
               <>Set environment variables: <InlineCode>CONFIG_SECRET</InlineCode> (required — encrypts config), <InlineCode>SETUP_SECRET</InlineCode> (optional — a fixed admin key for the setup wizard)</>,
               <>Deploy — visit your Vercel URL and run the setup wizard as normal</>,
             ]} />
@@ -481,13 +481,13 @@ volumes:
               <>Click <strong style={{ color: 'var(--text)' }}>Create Database</strong> and select <strong style={{ color: 'var(--text)' }}>Upstash Redis (KV)</strong></>,
               <>Choose a <strong style={{ color: 'var(--text)' }}>name</strong> (e.g., <InlineCode>lurelit-store</InlineCode>) and a <strong style={{ color: 'var(--text)' }}>region</strong> — pick one geographically close to your Elastic cluster for lowest latency</>,
               <>Select the <strong style={{ color: 'var(--text)' }}>Free</strong> plan (sufficient for Lurelit&apos;s usage) or Pay as You Go for higher limits</>,
-              <>Click <strong style={{ color: 'var(--text)' }}>Create</strong> — Vercel auto-adds <InlineCode>UPSTASH_REDIS_REST_URL</InlineCode> and <InlineCode>UPSTASH_REDIS_REST_TOKEN</InlineCode> to your project&apos;s environment variables</>,
+              <>Click <strong style={{ color: 'var(--text)' }}>Create</strong> — Vercel auto-adds Redis/KV REST URL and token environment variables to your project</>,
               <>Redeploy the project (Settings → Deployments → Redeploy) to pick up the new env vars</>,
             ]} />
 
             <SubHead>How It Works</SubHead>
             <Paragraph>
-              When <InlineCode>UPSTASH_REDIS_REST_URL</InlineCode> is detected, Lurelit automatically uses Redis for all persistence (config, admin key, avatars) instead of the filesystem. The setup wizard, login, and all features work identically to self-hosted deployments.
+              When Upstash Redis or Vercel KV REST credentials are detected, Lurelit automatically uses Redis for all persistence (config, admin key, avatars) instead of the filesystem. The setup wizard, login, and all features work identically to self-hosted deployments. Vercel/serverless deployments require this durable storage unless you set <InlineCode>KIBANA_URL</InlineCode> and <InlineCode>WORKFLOW_ID</InlineCode> environment variables to skip the wizard.
             </Paragraph>
 
             <SubHead>Finding the Admin Key on Vercel</SubHead>
@@ -1343,6 +1343,12 @@ TIMEOUT   →  Analysis step exceeded timeout (default 120s for AI, 500s for hun
               <><strong style={{ color: 'var(--text)' }}>&quot;Kibana URL not configured&quot; after rebuild</strong> — Ensure the <InlineCode>lurelit-data</InlineCode> volume is mounted at <InlineCode>/app/data</InlineCode> in your <InlineCode>docker-compose.yml</InlineCode>. Without the volume, config is lost on every container rebuild. Verify with: <InlineCode>docker volume ls | grep lurelit</InlineCode></>,
               <><strong style={{ color: 'var(--text)' }}>Config unreadable after changing CONFIG_SECRET</strong> — The <InlineCode>CONFIG_SECRET</InlineCode> env var must remain consistent across restarts. If changed, the encrypted config file (<InlineCode>data/.smish-config.enc</InlineCode>) can&apos;t be decrypted. Fix: restore the original secret, or delete the volume and re-run setup.</>,
               <><strong style={{ color: 'var(--text)' }}>Permission denied writing to data/</strong> — The container runs as non-root user <InlineCode>nextjs</InlineCode> (UID 1001). If using a bind mount instead of a Docker volume, ensure the host directory is writable by UID 1001. The app falls back to <InlineCode>/tmp</InlineCode> if the primary path fails.</>,
+            ]} />
+
+            <SubHead>Vercel &amp; Config Persistence</SubHead>
+            <BulletList items={[
+              <><strong style={{ color: 'var(--text)' }}>Setup returns to the wizard instead of login</strong> — Vercel functions do not provide durable filesystem storage. Add Upstash Redis/Vercel KV REST credentials, or set <InlineCode>KIBANA_URL</InlineCode> and <InlineCode>WORKFLOW_ID</InlineCode> as environment variables and redeploy.</>,
+              <><strong style={{ color: 'var(--text)' }}>Admin key changes between requests</strong> — Ensure Redis/KV REST credentials are present, or set a fixed <InlineCode>SETUP_SECRET</InlineCode> in Vercel environment variables.</>,
             ]} />
           </SectionCard>
 

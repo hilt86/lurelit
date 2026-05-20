@@ -7,8 +7,8 @@ export async function register() {
     let key = process.env.SETUP_SECRET || '';
 
     if (!key) {
-      if (process.env.UPSTASH_REDIS_REST_URL) {
-        const { getStorage } = await import('./lib/storage');
+      const { describeStorage, getStorage } = await import('./lib/storage');
+      if (describeStorage().kind === 'redis') {
         const storage = getStorage();
         const stored = await storage.get('admin-key');
         if (stored) {

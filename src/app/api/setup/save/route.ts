@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { saveGlobalConfig } from '@/lib/config';
 import { shouldUseSecureCookies } from '@/lib/cookies';
+import { getDeploymentPlatform, isServerlessPlatform } from '@/lib/deployment';
+import { describeStorage } from '@/lib/storage';
 
 interface SaveRequest {
   kibanaUrl: string;
@@ -19,7 +21,7 @@ export async function POST(request: Request) {
     const cleanedUrl = kibanaUrl.trim().replace(/\/+$/, '');
 
     // Reject localhost on serverless platforms — the function container can never reach it
-    const isServerless = Boolean(process.env.VERCEL || process.env.NETLIFY || process.env.CF_PAGES || process.env.AWS_LAMBDA_FUNCTION_NAME);
+    const isServerless = isServerlessPlatform();
     const isLocalhostUrl = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|host\.docker\.internal)(:\d+)?(\/|$)/i.test(cleanedUrl);
     if (isServerless && isLocalhostUrl) {
       return NextResponse.json({
@@ -27,9 +29,12 @@ export async function POST(request: Request) {
       }, { status: 400 });
     }
 
-    // Warn if running on a serverless platform without Upstash Redis — config will not persist
-    if (isServerless && !process.env.UPSTASH_REDIS_REST_URL) {
-      console.warn('[Lurelit] Running on a serverless platform without UPSTASH_REDIS_REST_URL — config will not persist across cold starts. Add Upstash Redis from the Vercel Marketplace.');
+    const storage = describeStorage();
+    if (isServerless && storage.kind !== 'redis') {
+      const platform = getDeploymentPlatform();
+      return NextResponse.json({
+        error: `${platform} deployments need durable Redis/KV storage before the setup wizard can save configuration. Add an Upstash Redis/Vercel KV integration (UPSTASH_REDIS_REST_* or KV_REST_API_* env vars) or set KIBANA_URL and WORKFLOW_ID as environment variables, then redeploy. Without durable storage, setup would be lost between requests and redirect back to /setup.`,
+      }, { status: 503 });
     }
 
     await saveGlobalConfig({
