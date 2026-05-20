@@ -168,7 +168,8 @@ export default function DocsPage() {
       const el = document.getElementById(section.id);
       index[section.id] = (el?.textContent ?? '').replace(/\s+/g, ' ').trim();
     }
-    setSectionIndex(index);
+    const frame = window.requestAnimationFrame(() => setSectionIndex(index));
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   useEffect(() => {
@@ -249,7 +250,7 @@ export default function DocsPage() {
         <div style={{ width: '100%', maxWidth: 1200, margin: '0 auto', padding: '0 32px' }}>
           {/* Header */}
           <div className="row gap-4 animate-fade-in" style={{ marginBottom: 8, paddingTop: 40 }}>
-            <span className="label" style={{ color: 'var(--teal-bright)' }}>// Documentation</span>
+            <span className="label" style={{ color: 'var(--teal-bright)' }}>{'// Documentation'}</span>
           </div>
 
           <h1 className="display animate-slide-up" style={{
