@@ -3,7 +3,7 @@ import { resolveCurrentUser, validateApiKey, validateCredentials } from '@/lib/e
 import { createApiKeySession, createSession } from '@/lib/session';
 import { loadGlobalConfig } from '@/lib/config';
 import { buildApiKeyAuthHeader } from '@/lib/kibana-auth';
-import { shouldUseSecureCookies } from '@/lib/cookies';
+import { CONFIGURED_COOKIE, configuredCookieOptions, shouldUseSecureCookies } from '@/lib/cookies';
 import { isServerlessPlatform } from '@/lib/deployment';
 import type { AuthMode } from '@/lib/kibana-auth';
 
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         error: 'No Kibana configuration found. Re-run the setup wizard at /setup to configure your connection.',
         needsSetup: true,
       }, { status: 503 });
-      response.cookies.set('smish_configured', '', { maxAge: 0, path: '/' });
+      response.cookies.set(CONFIGURED_COOKIE, '', { maxAge: 0, path: '/' });
       return response;
     }
 
@@ -66,7 +66,9 @@ export async function POST(request: NextRequest) {
       await createSession(username!, password!, { secure: secureCookie });
     }
 
-    return NextResponse.json({ ok: true, username: displayUsername });
+    const response = NextResponse.json({ ok: true, username: displayUsername });
+    response.cookies.set(CONFIGURED_COOKIE, '1', configuredCookieOptions());
+    return response;
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Login failed' }, { status: 500 });
   }
