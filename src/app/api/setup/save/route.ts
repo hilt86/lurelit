@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { saveGlobalConfig } from '@/lib/config';
-import { shouldUseSecureCookies } from '@/lib/cookies';
+import { CONFIGURED_COOKIE, configuredCookieOptions } from '@/lib/cookies';
 import { getDeploymentPlatform, isServerlessPlatform } from '@/lib/deployment';
 import { describeStorage } from '@/lib/storage';
 
@@ -44,13 +44,7 @@ export async function POST(request: Request) {
     });
 
     const response = NextResponse.json({ success: true });
-    response.cookies.set('smish_configured', '1', {
-      httpOnly: false,
-      secure: shouldUseSecureCookies(request),
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 365 * 5,
-    });
+    response.cookies.set(CONFIGURED_COOKIE, '1', configuredCookieOptions());
 
     return response;
   } catch (err) {
